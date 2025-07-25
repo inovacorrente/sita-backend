@@ -21,7 +21,12 @@ def gerar_matricula_para_usuario(usuario, usuario_model):
             ).count() + 1
         )
         return f"{prefixo}{count:03d}"
-    grupos = usuario.groups.all() if hasattr(usuario, 'groups') else []
+    if hasattr(usuario, 'groups') and callable(getattr(usuario.groups, 'all', None)):  # noqa: E501
+        grupos = usuario.groups.all()
+    elif hasattr(usuario, 'groups'):
+        grupos = usuario.groups  # já é lista
+    else:
+        grupos = []
     if grupos:
         iniciais = ''.join([
             grupo_iniciais.get(
