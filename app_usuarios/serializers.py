@@ -107,3 +107,7 @@ class IsAdminToCreateAdmin(permissions.BasePermission):
             ):
                 return request.user and request.user.is_authenticated and request.user.is_staff  # noqa: E501
         return True
+
+
+class UsuarioAtivarDesativarSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField(required=True)
