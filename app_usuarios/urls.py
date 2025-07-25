@@ -1,5 +1,8 @@
 from django.urls import path
 
+from .views import CustomTokenObtainPairView
+
 urlpatterns = [
-    # Adicione suas rotas de API aqui
+    path('login/', CustomTokenObtainPairView.as_view(),
+         name='token_obtain_pair'),
 ]
