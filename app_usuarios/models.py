@@ -19,7 +19,9 @@ class CustomUserManager(BaseUserManager):
                 type('TempUser', (), {
                     'email': email,
                     'nome_completo': nome_completo,
+                    'cpf': extra_fields.get('cpf', ''),
                     'is_superuser': extra_fields.get('is_superuser', False),
+                    'is_staff': extra_fields.get('is_staff', False),
                     'groups': []  # Não há grupos ainda na criação
                 })(),
                 self.model
@@ -48,6 +50,12 @@ class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     cpf = models.CharField(max_length=11, unique=True)
     telefone = models.CharField(max_length=15, blank=True, null=True)
+    data_nascimento = models.DateField()
+    sexo = models.CharField(
+        max_length=1,
+        choices=(('M', 'Masculino'), ('F', 'Feminino'), ('O', 'Outro')),
+        default='O'
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)

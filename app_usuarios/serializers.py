@@ -22,6 +22,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    cpf = serializers.CharField(required=True)
+    data_nascimento = serializers.DateField(required=True)
+    sexo = serializers.CharField(required=True)
     groups = serializers.PrimaryKeyRelatedField(
         queryset=Group.objects.all(), many=True, required=False
     )
@@ -37,13 +40,14 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
             'cpf',
             'telefone',
             'password',
+            'data_nascimento',
+            'sexo',
             'groups',
             'is_staff',
             'is_superuser',
         ]
 
     def create(self, validated_data):
-        # Remove groups antes de criar o usuário
         groups = validated_data.pop(
             'groups', []) if 'groups' in validated_data else []
         password = validated_data.pop('password')

@@ -2,19 +2,14 @@
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 
+from app_usuarios.utils import gerar_grupos_padrao
+
 
 class Command(BaseCommand):
     help = 'Cria os grupos padrão do sistema.'
 
     def handle(self, *args, **options):
-        grupos = [
-            'ADMINISTRADOR',
-            'ATENDENTE ADMINISTRATIVO',
-            'FISCAL',
-            'TAXISTA',
-            'MOTOTAXISTA',
-            'MOTOTRISTACONDUTOR',
-        ]
+        grupos = gerar_grupos_padrao()
         for nome in grupos:
             grupo, criado = Group.objects.get_or_create(name=nome)
             if criado:
