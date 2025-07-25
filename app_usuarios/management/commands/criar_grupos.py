@@ -8,9 +8,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         grupos = [
-            'FISCAL',
-            'ATENDENTE ADMINISTRATIVO',
             'ADMINISTRADOR',
+            'ATENDENTE ADMINISTRATIVO',
+            'FISCAL',
             'TAXISTA',
             'MOTOTAXISTA',
             'MOTOTRISTACONDUTOR',
