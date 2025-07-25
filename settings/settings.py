@@ -37,6 +37,7 @@ APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'drf_spectacular',
     'app_usuarios',
 
 ]
@@ -147,7 +148,11 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': os.environ.get('PAGE_SIZE', 10),  # noqa
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'drf_spectacular.renderers.OpenApiYamlRenderer',
+        'drf_spectacular.renderers.OpenApiJsonRenderer',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 
