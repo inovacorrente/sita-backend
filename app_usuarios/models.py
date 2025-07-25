@@ -13,6 +13,17 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
+        # Gera matrícula se não for informada
+        if not matricula:
+            matricula = gerar_matricula_para_usuario(
+                type('TempUser', (), {
+                    'email': email,
+                    'nome_completo': nome_completo,
+                    'is_superuser': extra_fields.get('is_superuser', False),
+                    'groups': []  # Não há grupos ainda na criação
+                })(),
+                self.model
+            )
         user = self.model(email=email, nome_completo=nome_completo,
                           matricula=matricula, **extra_fields)
         user.set_password(password)
@@ -23,7 +34,12 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
-        return self.create_user(email, nome_completo, None, password, **extra_fields)  # noqa
+        return self.create_user(
+            email,
+            nome_completo,
+            password=password,
+            **extra_fields
+        )
 
 
 class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
@@ -33,6 +49,8 @@ class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
     cpf = models.CharField(max_length=11, unique=True)
     telefone = models.CharField(max_length=15, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
     data_criacao = models.DateTimeField(auto_now_add=True)
     groups = models.ManyToManyField(
         'auth.Group',
