@@ -38,6 +38,8 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
             'telefone',
             'password',
             'groups',
+            'is_staff',
+            'is_superuser',
         ]
 
     def create(self, validated_data):
@@ -45,10 +47,14 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         groups = validated_data.pop(
             'groups', []) if 'groups' in validated_data else []
         password = validated_data.pop('password')
+        is_staff = validated_data.pop('is_staff', False)
+        is_superuser = validated_data.pop('is_superuser', False)
         # Cria o usuário sem grupos
         user = UsuarioCustom.objects.create_user(
             **validated_data,
             password=password,
+            is_staff=is_staff,
+            is_superuser=is_superuser
         )
         # Só depois adiciona os grupos
         if groups:
