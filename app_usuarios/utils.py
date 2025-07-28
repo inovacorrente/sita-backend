@@ -45,8 +45,14 @@ def gerar_matricula_para_usuario(usuario, usuario_model):
         return f"{prefixo}{count:03d}"
 
     # Obtém grupos do usuário, se houver
-    grupos = usuario.groups.all() if hasattr(usuario, 'groups') else []
-
+    if hasattr(usuario, 'groups'):
+        if callable(getattr(usuario.groups, 'all', None)):
+            grupos = usuario.groups.all()
+        else:
+            grupos = usuario.groups
+    else:
+        grupos = []
+        
     # Gera as iniciais dos grupos; se não houver, usa 'X'
     if grupos:
         iniciais = ''.join([
