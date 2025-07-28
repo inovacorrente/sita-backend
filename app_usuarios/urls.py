@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .views import (CustomTokenObtainPairView, UsuarioAtivarDesativarView,
-                    UsuarioCustomCreateView)
+                    UsuarioCustomCreateView, UsuarioCustomUpdateView)
 
 urlpatterns = [
     path(
@@ -15,8 +15,10 @@ urlpatterns = [
         name='usuario_register'
     ),
     path(
-        'usuario/ativar-desativar/',
+        'ativar-desativar/<str:matricula>/',
         UsuarioAtivarDesativarView.as_view(),
         name='usuario_ativar_desativar'
     ),
+    path('<str:matricula>/editar/',
+         UsuarioCustomUpdateView.as_view(), name='usuario_editar'),
 ]

@@ -3,6 +3,7 @@ from rest_framework import permissions, serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import UsuarioCustom
+from .utils import validar_cpf, validar_email, validar_telefone
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -21,10 +22,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=8)
     cpf = serializers.CharField(required=True)
     data_nascimento = serializers.DateField(required=True)
-    sexo = serializers.CharField(required=True)
+    sexo = serializers.ChoiceField(
+        choices=[('M', 'Masculino'), ('F', 'Feminino'), ('O', 'Outro')],
+        required=True
+    )
+    telefone = serializers.CharField(required=False, allow_blank=True)
     groups = serializers.PrimaryKeyRelatedField(
         queryset=Group.objects.all(), many=True, required=False
     )
@@ -47,23 +52,36 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
             'is_superuser',
         ]
 
+    def validate_cpf(self, value):
+        """Valida formato e algoritmo do CPF usando validator-collection"""
+        return validar_cpf(value)
+
+    def validate_email(self, value):
+        """Valida formato do email usando validator-collection"""
+        return validar_email(value)
+
+    def validate_telefone(self, value):
+        """Valida formato do telefone usando validator-collection"""
+        return validar_telefone(value)
+
     def create(self, validated_data):
-        groups = validated_data.pop(
-            'groups', []) if 'groups' in validated_data else []
+        groups = validated_data.pop('groups', [])
         password = validated_data.pop('password')
         is_staff = validated_data.pop('is_staff', False)
         is_superuser = validated_data.pop('is_superuser', False)
-        # Cria o usuário sem grupos
+
+        # Cria o usuário
         user = UsuarioCustom.objects.create_user(
             **validated_data,
             password=password,
             is_staff=is_staff,
             is_superuser=is_superuser
         )
-        # Só depois adiciona os grupos
+
+        # Adiciona os grupos se fornecidos
         if groups:
             user.groups.set(groups)
-            user.save()
+
         return user
 
 
@@ -110,4 +128,5 @@ class IsAdminToCreateAdmin(permissions.BasePermission):
 
 
 class UsuarioAtivarDesativarSerializer(serializers.Serializer):
+    matricula = serializers.CharField(required=True, allow_blank=True)
     is_active = serializers.BooleanField(required=True)
