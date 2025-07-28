@@ -1,3 +1,7 @@
+"""
+Modelos e gerenciador de usuários customizados para o sistema.
+Inclui o modelo UsuarioCustom e o CustomUserManager.
+"""
 
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
                                         PermissionsMixin)
@@ -9,7 +13,29 @@ from .utils import gerar_matricula_para_usuario
 
 
 class CustomUserManager(BaseUserManager):
+    """
+    Manager personalizado para o modelo de usuário customizado.
+    Fornece métodos para criar usuários e superusuários.
+    """
+
     def create_user(self, email, nome_completo, matricula=None, password=None, **extra_fields):  # noqa
+        """
+        Cria e retorna um novo usuário com os dados fornecidos.
+
+        Args:
+            email (str): Email do usuário.
+            nome_completo (str): Nome completo do usuário.
+            matricula (str, opcional): Matrícula do usuário.
+            Gerada automaticamente se não fornecida.
+            password (str, opcional): Senha do usuário.
+            **extra_fields: Campos adicionais para o usuário.
+
+        Returns:
+            UsuarioCustom: Instância do usuário criado.
+
+        Raises:
+            ValueError: Se o campo email não for fornecido.
+        """
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
@@ -33,6 +59,18 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, nome_completo, password=None, **extra_fields):  # noqa
+        """
+        Cria e retorna um novo superusuário com os dados fornecidos.
+
+        Args:
+            email (str): Email do superusuário.
+            nome_completo (str): Nome completo do superusuário.
+            password (str, opcional): Senha do superusuário.
+            **extra_fields: Campos adicionais para o superusuário.
+
+        Returns:
+            UsuarioCustom: Instância do superusuário criado.
+        """
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
@@ -87,10 +125,16 @@ class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = 'usuários'
 
     def save(self, *args, **kwargs):
-
+        """
+        Salva o usuário no banco de dados.
+        Gera a matrícula automaticamente se não informada.
+        """
         if not self.matricula:
             self.matricula = gerar_matricula_para_usuario(self, self.__class__)
         super().save(*args, **kwargs)
 
     def __str__(self):
+        """
+        Retorna a representação em string do usuário (email).
+        """
         return self.email

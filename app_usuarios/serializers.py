@@ -7,15 +7,47 @@ from .utils import validar_cpf, validar_email, validar_telefone
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Serializador customizado para o token JWT (access e refresh) usando o campo `matricula` no lugar do `username`.
+
+    Esta classe estende o TokenObtainPairSerializer do SimpleJWT para:
+    - Adicionar claims personalizados ao token (como matrícula e email).
+    - Permitir login com o campo `matricula` em vez do tradicional `username`.
+    """
+
     @classmethod
     def get_token(cls, user):
+        """
+        Gera o token JWT (access e refresh) para o usuário autenticado.
+        Adiciona informações personalizadas (claims extras) ao token.
+
+        Args:
+            user (UsuarioCustom): Usuário autenticado.
+
+        Returns:
+            Token: Objeto de token JWT com claims customizadas.
+        """
         token = super().get_token(user)
         # Adicione claims extras se quiser
+        # Inclui a matrícula no payload do token
         token['matricula'] = user.matricula
+        # Inclui o email no payload do token
         token['email'] = user.email
         return token
 
     def validate(self, attrs):
+        """
+        Valida os dados de entrada (credenciais) para autenticação JWT.
+
+        Substitui o campo `username` por `matricula` para compatibilidade com o SimpleJWT,
+        que espera o campo `username` por padrão.
+
+        Args:
+            attrs (dict): Dados fornecidos na requisição (ex: matricula e password).
+
+        Returns:
+            dict: Dados de autenticação válidos, incluindo access e refresh tokens.
+        """
         # Substitui username por matrícula
         attrs['username'] = attrs.get('matricula')
         return super().validate(attrs)

@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
@@ -13,6 +12,24 @@ class Command(BaseCommand):
     help = 'Cria usuários e associa aos grupos informados.'
 
     def handle(self, *args, **options):
+        """
+        Executa o comando de criação de usuários.
+
+        Este comando cria:
+        - Um superusuário administrador, caso ainda não exista.
+        - Dois usuários para cada grupo do sistema
+            (usuários fake com dados gerados via Faker).
+
+        Para cada usuário:
+        - Gera CPF e telefone falsos.
+        - Gera uma matrícula única antes de salvar.
+        - Associa o usuário ao(s) grupo(s) especificado(s).
+        - Garante que o email e CPF sejam únicos antes da criação.
+
+        Caso o superusuário com email `admin@exemplo.com`
+            já exista, ele não será recriado.
+        """
+
         fake = Faker('pt_BR')
         admin_email = 'admin@exemplo.com'
         usuarios_para_criar = self._criar_lista_usuarios(fake, admin_email)
@@ -76,7 +93,7 @@ class Command(BaseCommand):
             return
 
         class TempUser:
-            def __init__(self, grupos, email, nome_completo, is_superuser, cpf):
+            def __init__(self, grupos, email, nome_completo, is_superuser, cpf):  # noqa
                 self._grupos = grupos
                 self.email = email
                 self.nome_completo = nome_completo
