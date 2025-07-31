@@ -161,8 +161,25 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate_cpf(self, value):
-        """Valida formato e algoritmo do CPF"""
-        return validate_cpf(value)
+        """Valida formato e algoritmo do CPF e unicidade"""
+        # Primeiro valida formato
+        validated_cpf = validate_cpf(value)
+
+        # Depois verifica unicidade
+        if self.instance:  # Edição
+            if UsuarioCustom.objects.filter(
+                cpf=validated_cpf
+            ).exclude(pk=self.instance.pk).exists():
+                raise serializers.ValidationError(
+                    "Este CPF já está sendo usado por outro usuário."
+                )
+        else:  # Criação
+            if UsuarioCustom.objects.filter(cpf=validated_cpf).exists():
+                raise serializers.ValidationError(
+                    "Este CPF já está cadastrado no sistema."
+                )
+
+        return validated_cpf
 
     def validate_email(self, value):
         """Valida formato do email e unicidade"""

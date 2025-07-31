@@ -153,6 +153,7 @@ REST_FRAMEWORK = {
         'drf_spectacular.renderers.OpenApiJsonRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'app_usuarios.exceptions.custom_exception_handler',
 }
 
 

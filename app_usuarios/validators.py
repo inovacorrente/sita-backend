@@ -23,11 +23,15 @@ def validar_cpf(value):
 
     # Verifica se tem exatamente 11 dígitos
     if not re.match(r'^\d{11}$', cpf):
-        raise serializers.ValidationError("CPF deve ter 11 dígitos.")
+        raise serializers.ValidationError(
+            "CPF deve conter exatamente 11 dígitos numéricos."
+        )
 
     # Verifica se todos os dígitos são iguais (regex)
     if re.match(r'^(\d)\1{10}$', cpf):
-        raise serializers.ValidationError("CPF inválido.")
+        raise serializers.ValidationError(
+            "CPF não pode ter todos os dígitos iguais."
+        )
 
     # Usa validator-collection para validar algoritmo do CPF
     try:
@@ -45,13 +49,17 @@ def validar_cpf(value):
 
         # Verifica se os dígitos calculados conferem
         if cpf[9:11] != f"{primeiro_digito}{segundo_digito}":
-            raise serializers.ValidationError("CPF inválido.")
+            raise serializers.ValidationError(
+                "CPF inválido. Verifique os dígitos e tente novamente."
+            )
 
         # Valida como string numérica usando validator-collection
         validators.numeric(cpf, minimum=10000000000, maximum=99999999999)
 
     except (errors.InvalidValueError, ValueError):
-        raise serializers.ValidationError("CPF inválido.")
+        raise serializers.ValidationError(
+            "CPF inválido. Verifique os dígitos e tente novamente."
+        )
 
     return cpf
 
@@ -62,7 +70,9 @@ def validar_email(value):
         # Valida formato do email
         validators.email(value)
     except (errors.InvalidValueError, ValueError):
-        raise serializers.ValidationError("Email inválido.")
+        raise serializers.ValidationError(
+            "Formato de e-mail inválido. Use o formato: exemplo@dominio.com"
+        )
 
     return value
 
@@ -80,7 +90,8 @@ def validar_telefone(value):
             # Verifica tamanho (10 ou 11 dígitos)
             if len(telefone) < 10 or len(telefone) > 11:
                 raise serializers.ValidationError(
-                    "Telefone deve ter 10 ou 11 dígitos."
+                    "Telefone deve ter 10 ou 11 dígitos com DDD. "
+                    "Exemplo: (11) 99999-9999"
                 )
 
             # Valida se começa com códigos válidos
@@ -88,17 +99,22 @@ def validar_telefone(value):
                 # Celular: deve começar com 9
                 if not telefone[2:3] == '9':
                     raise serializers.ValidationError(
-                        "Celular deve começar com 9 após o DDD."
+                        "Número de celular deve começar com 9 após o DDD. "
+                        "Exemplo: (11) 99999-9999"
                     )
             elif len(telefone) == 10:
                 # Fixo: não deve começar com 9
                 if telefone[2:3] == '9':
                     raise serializers.ValidationError(
-                        "Telefone fixo não deve começar com 9."
+                        "Telefone fixo não deve começar com 9 após o DDD. "
+                        "Exemplo: (11) 3333-4444"
                     )
 
         except (errors.InvalidValueError, ValueError):
-            raise serializers.ValidationError("Telefone inválido.")
+            raise serializers.ValidationError(
+                "Formato de telefone inválido. "
+                "Use apenas números com DDD."
+            )
 
         return telefone
     return value
@@ -113,7 +129,7 @@ def validate_cpf(value):
     try:
         return validar_cpf(value)
     except Exception as e:
-        raise serializers.ValidationError(f"CPF inválido: {str(e)}")
+        raise serializers.ValidationError(str(e))
 
 
 def validate_email_unique(value, instance=None):
@@ -127,19 +143,22 @@ def validate_email_unique(value, instance=None):
                 email=validated_email
             ).exclude(pk=instance.pk).exists():
                 raise serializers.ValidationError(
-                    "Este e-mail já está em uso por outro usuário."
+                    "Este e-mail já está sendo usado por outro usuário."
                 )
         else:  # Criação
             if UsuarioCustom.objects.filter(
                 email=validated_email
             ).exists():
                 raise serializers.ValidationError(
-                    "Este e-mail já está em uso."
+                    "Este e-mail já está cadastrado no sistema."
                 )
 
         return validated_email
+    except serializers.ValidationError:
+        # Re-raise validation errors from validar_email
+        raise
     except Exception as e:
-        raise serializers.ValidationError(f"E-mail inválido: {str(e)}")
+        raise serializers.ValidationError(f"Erro ao validar e-mail: {str(e)}")
 
 
 def validate_telefone_format(value):
@@ -147,9 +166,12 @@ def validate_telefone_format(value):
     if value:  # Só valida se foi fornecido
         try:
             return validar_telefone(value)
+        except serializers.ValidationError:
+            # Re-raise validation errors from validar_telefone
+            raise
         except Exception as e:
             raise serializers.ValidationError(
-                f"Telefone inválido: {str(e)}"
+                f"Erro ao validar telefone: {str(e)}"
             )
     return value
 
@@ -167,12 +189,12 @@ def validate_data_nascimento_range(value):
 
     if value < idade_maxima:
         raise serializers.ValidationError(
-            "Data de nascimento muito antiga."
+            "Data de nascimento muito antiga (máximo 120 anos)."
         )
 
     if value > idade_minima:
         raise serializers.ValidationError(
-            "Usuário deve ter pelo menos 16 anos."
+            "Usuário deve ter pelo menos 16 anos para se cadastrar."
         )
 
     return value
@@ -181,9 +203,9 @@ def validate_data_nascimento_range(value):
 def validate_password_strength(value):
     """Valida senha básica (se fornecida)"""
     # Se senha foi fornecida, faz validação básica
-    if value and len(value) < 3:
+    if value and len(value) < 8:
         raise serializers.ValidationError(
-            "A senha deve ter pelo menos 3 caracteres."
+            "A senha deve ter pelo menos 8 caracteres para maior segurança."
         )
     return value
 
@@ -193,32 +215,31 @@ def validate_password_confirmation(password, password_confirm):
     if password and password_confirm:
         if password != password_confirm:
             raise serializers.ValidationError({
-                'password_confirm': 'As senhas não coincidem.'
+                'password_confirm': (
+                    'As senhas não coincidem. '
+                    'Verifique se foram digitadas corretamente.'
+                )
             })
     elif (password and password_confirm is not None
           and not password_confirm):
         raise serializers.ValidationError({
-            'password_confirm': 'Confirmação de senha é obrigatória.'
+            'password_confirm': (
+                'Confirmação de senha é obrigatória quando '
+                'uma senha é fornecida.'
+            )
         })
 
 
 def set_default_password_as_matricula(attrs):
-    """
-    Define senha padrão como matrícula se não foi fornecida senha.
-
-    Args:
-        attrs (dict): Dados validados do serializer
-
-    Returns:
-        dict: Dados com senha definida (se necessário)
-    """
-    password = attrs.get('password')
-    matricula = attrs.get('matricula')
-
-    # Se não foi fornecida senha, usa a matrícula como senha padrão
-    if not password and matricula:
-        attrs['password'] = matricula
-
+    """Define senha padrão como matrícula se não fornecida"""
+    if not attrs.get('password'):
+        # Gera matrícula temporária se não estiver disponível
+        matricula = getattr(attrs, 'matricula', None)
+        if not matricula:
+            # Se não há matrícula, usa um padrão temporário
+            attrs['password'] = 'temp123456'
+        else:
+            attrs['password'] = matricula
     return attrs
 
 

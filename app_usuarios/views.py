@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .exceptions import SuccessResponse
 from .models import UsuarioCustom
 from .serializers import (CustomTokenObtainPairSerializer,
                           IsAdminToCreateAdmin,
@@ -35,6 +36,20 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     View para autenticação JWT usando matrícula ao invés de username.
     """
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        """
+        Sobrescreve o método post para retornar resposta padronizada
+        """
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == 200:
+            # Sucesso na autenticação
+            success_data = SuccessResponse.login_success(response.data)
+            return Response(success_data, status=status.HTTP_200_OK)
+
+        # Em caso de erro, o manipulador de exceções já trata
+        return response
 
 
 # ============================================================================
@@ -119,7 +134,11 @@ class UsuarioMeView(APIView):
         Retorna os dados do usuário autenticado.
         """
         serializer = UsuarioMeSerializer(request.user)
-        return Response(serializer.data)
+        success_data = SuccessResponse.retrieved(
+            serializer.data,
+            "Dados do usuário recuperados com sucesso."
+        )
+        return Response(success_data, status=status.HTTP_200_OK)
 
     def put(self, request):
         """
@@ -132,7 +151,11 @@ class UsuarioMeView(APIView):
         )
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            success_data = SuccessResponse.updated(
+                serializer.data,
+                "Dados atualizados com sucesso."
+            )
+            return Response(success_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
