@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -11,6 +13,8 @@ from .serializers import (CustomTokenObtainPairSerializer,
                           UsuarioAtivarDesativarSerializer,
                           UsuarioCustomCreateSerializer,
                           UsuarioCustomViewSerializer, UsuarioMeSerializer)
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # PERMISSIONS CUSTOMIZADAS
@@ -144,19 +148,55 @@ class UsuarioMeView(APIView):
         """
         Permite ao usuário atualizar seus próprios dados.
         """
-        serializer = UsuarioMeSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            success_data = SuccessResponse.updated(
-                serializer.data,
-                "Dados atualizados com sucesso."
+        try:
+            serializer = UsuarioMeSerializer(
+                request.user,
+                data=request.data,
+                partial=True
             )
-            return Response(success_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if serializer.is_valid():
+                serializer.save()
+                logger.info(
+                    f"Usuário {request.user.matricula} atualizou seus dados"
+                )
+                success_data = SuccessResponse.updated(
+                    serializer.data,
+                    "Dados atualizados com sucesso."
+                )
+                return Response(success_data, status=status.HTTP_200_OK)
+
+            # Log dos erros de validação para debugging
+            logger.warning(
+                f"Erro de validação para usuário {request.user.matricula}: "
+                f"{serializer.errors}"
+            )
+
+            # Formatar erros de validação seguindo o padrão do projeto
+            error_response = {
+                'success': False,
+                'message': 'Erro de validação dos dados fornecidos.',
+                'errors': serializer.errors
+            }
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(
+                f"Erro inesperado ao atualizar dados do usuário "
+                f"{request.user.matricula}: {str(e)}"
+            )
+            error_response = {
+                'success': False,
+                'message': 'Erro interno do servidor.',
+                'error': {
+                    'code': 'INTERNAL_SERVER_ERROR',
+                    'message': 'Ocorreu um erro inesperado. Tente novamente.',
+                    'details': 'Se o problema persistir, contate o suporte.'
+                }
+            }
+            return Response(
+                error_response,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def patch(self, request):
         """
@@ -184,23 +224,63 @@ class UsuarioAtivarDesativarView(APIView):
         # Se admin, pode passar a matrícula de qualquer usuário
         if request.user.is_staff or request.user.is_superuser:
             if not matricula:
+                error_response = {
+                    'success': False,
+                    'message': 'Matrícula é obrigatória para administradores.',
+                    'error': {
+                        'code': 'MISSING_MATRICULA',
+                        'message': (
+                            'Matrícula é obrigatória para administradores.'
+                        ),
+                        'details': (
+                            'Administradores devem fornecer a matrícula '
+                            'do usuário a ser alterado.'
+                        )
+                    }
+                }
                 return Response(
-                    {'detail': 'matricula é obrigatória para admin.'},
+                    error_response,
                     status=status.HTTP_400_BAD_REQUEST
                 )
             try:
                 user = UsuarioCustom.objects.get(matricula=matricula)
             except UsuarioCustom.DoesNotExist:
+                error_response = {
+                    'success': False,
+                    'message': 'Usuário não encontrado.',
+                    'error': {
+                        'code': 'USER_NOT_FOUND',
+                        'message': (
+                            'Usuário com a matrícula informada não existe.'
+                        ),
+                        'details': (
+                            f'Nenhum usuário encontrado '
+                            f'com matrícula: {matricula}'
+                        )
+                    }
+                }
                 return Response(
-                    {'detail': 'Usuário não encontrado.'},
+                    error_response,
                     status=status.HTTP_404_NOT_FOUND
                 )
         else:
             # Usuário comum só pode alterar a si mesmo
             user = request.user
             if matricula and matricula != user.matricula:
+                error_response = {
+                    'success': False,
+                    'message': 'Acesso negado.',
+                    'error': {
+                        'code': 'FORBIDDEN_OPERATION',
+                        'message': 'Você só pode alterar seu próprio status.',
+                        'details': (
+                            'Usuários não administradores só podem '
+                            'alterar seu próprio status.'
+                        )
+                    }
+                }
                 return Response(
-                    {'detail': 'Você só pode alterar seu próprio status.'},
+                    error_response,
                     status=status.HTTP_403_FORBIDDEN
                 )
 
