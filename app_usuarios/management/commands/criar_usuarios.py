@@ -32,11 +32,23 @@ class Command(BaseCommand):
 
         fake = Faker('pt_BR')
         admin_email = 'admin@exemplo.com'
-        usuarios_para_criar = self._criar_lista_usuarios(fake, admin_email)
+        admin_matricula = '123456789012'
+
+        # Matrículas específicas para cada grupo (para facilitar testes)
+        matriculas_especificas = {
+            'ADMINISTRADOR': ['100000000001', '100000000002'],
+            'ATENDENTE ADMINISTRATIVO': ['200000000001', '200000000002'],
+            'FISCAL': ['300000000001', '300000000002'],
+            'CONDUTOR': ['400000000001', '400000000002']
+        }
+
+        usuarios_para_criar = self._criar_lista_usuarios(
+            fake, admin_email, admin_matricula, matriculas_especificas)
         for dados in usuarios_para_criar:
             self._criar_usuario(dados)
 
-    def _criar_lista_usuarios(self, fake, admin_email):
+    def _criar_lista_usuarios(self, fake, admin_email, admin_matricula,
+                              matriculas_especificas):
         usuarios_para_criar = []
         if not User.objects.filter(email=admin_email).exists():
             usuarios_para_criar.append({
@@ -48,14 +60,16 @@ class Command(BaseCommand):
                 'grupos': ['ADMINISTRADOR'],
                 'is_superuser': True,
                 'is_staff': True,
+                'matricula': admin_matricula,
                 'data_nascimento': fake.date_of_birth(minimum_age=18).strftime('%Y-%m-%d'),  # noqa
                 'sexo': fake.random_element(elements=('M', 'F', 'O'))
             })
         else:
-            self.stdout.write(self.style.WARNING(f'Usuário admin já existe.'))
+            self.stdout.write(self.style.WARNING('Usuário admin já existe.'))
         grupos_faker = gerar_grupos_padrao()
-        for grupo in grupos_faker:
-            for i in range(2):
+        for i, grupo in enumerate(grupos_faker):
+            matriculas_grupo = matriculas_especificas.get(grupo, [])
+            for j in range(2):
                 nome = fake.name()
                 email = fake.unique.email()
                 cpf = fake.unique.cpf().replace('.', '').replace('-', '')
@@ -63,12 +77,19 @@ class Command(BaseCommand):
                     minimum_age=18).strftime('%Y-%m-%d')
                 sexo = fake.random_element(elements=('M', 'F', 'O'))
                 telefone = fake.phone_number()[:15]
+
+                # Usa matrícula específica se disponível,
+                # senão None para gerar automaticamente
+                matricula_especifica = (matriculas_grupo[j]
+                                        if j < len(matriculas_grupo) else None)
+
                 usuarios_para_criar.append({
                     'email': email,
                     'nome_completo': nome,
                     'cpf': cpf,
                     'telefone': telefone,
                     'password': 'senha123',
+                    'matricula': matricula_especifica,
                     'data_nascimento': data_nascimento,
                     'sexo': sexo,
                     'grupos': [grupo]
@@ -81,6 +102,7 @@ class Command(BaseCommand):
         password = dados.pop('password')
         is_superuser = dados.pop('is_superuser', False)
         is_staff = dados.pop('is_staff', False)
+        matricula_especifica = dados.pop('matricula', None)
 
         # Verifica unicidade de e-mail e CPF
         if User.objects.filter(email=dados['email']).exists():
@@ -92,32 +114,42 @@ class Command(BaseCommand):
                 f'Usuário com CPF {dados["cpf"]} já existe.'))
             return
 
-        class TempUser:
-            def __init__(self, grupos, email, nome_completo, is_superuser, cpf):  # noqa
-                self._grupos = grupos
-                self.email = email
-                self.nome_completo = nome_completo
-                self.is_superuser = is_superuser
-                self.cpf = cpf
+        # Define a matrícula a ser usada
+        if matricula_especifica:
+            # Verifica se a matrícula específica já existe
+            if User.objects.filter(matricula=matricula_especifica).exists():
+                self.stdout.write(self.style.WARNING(
+                    f'Matrícula {matricula_especifica} já existe.'))
+                return
+            dados['matricula'] = matricula_especifica
+        else:
+            # Gera matrícula automaticamente
+            class TempUser:
+                def __init__(self, grupos, email, nome_completo, is_superuser, cpf):  # noqa
+                    self._grupos = grupos
+                    self.email = email
+                    self.nome_completo = nome_completo
+                    self.is_superuser = is_superuser
+                    self.cpf = cpf
 
-            @property
-            def groups(self):
-                class GroupList:
-                    def __init__(self, nomes):
-                        self._nomes = nomes
+                @property
+                def groups(self):
+                    class GroupList:
+                        def __init__(self, nomes):
+                            self._nomes = nomes
 
-                    def all(self):
-                        class G:
-                            def __init__(self, name):
-                                self.name = name
-                        return [G(name) for name in self._nomes]
-                return GroupList(self._grupos)
+                        def all(self):
+                            class G:
+                                def __init__(self, name):
+                                    self.name = name
+                            return [G(name) for name in self._nomes]
+                    return GroupList(self._grupos)
 
-        temp_user = TempUser(
-            grupos, dados['email'],
-            dados['nome_completo'],
-            is_superuser, dados['cpf'])
-        dados['matricula'] = gerar_matricula_para_usuario(temp_user, User)
+            temp_user = TempUser(
+                grupos, dados['email'],
+                dados['nome_completo'],
+                is_superuser, dados['cpf'])
+            dados['matricula'] = gerar_matricula_para_usuario(temp_user, User)
 
         usuario = User.objects.create(
             email=dados['email'],
@@ -133,7 +165,7 @@ class Command(BaseCommand):
         usuario.is_staff = is_staff
         usuario.save()
         self.stdout.write(self.style.SUCCESS(
-            f'Usuário {usuario.email} criado.'))
+            f'Usuário {usuario.email} criado com matrícula {dados["matricula"]}.'))  # noqa
         for nome_grupo in grupos:
             grupo, _ = Group.objects.get_or_create(name=nome_grupo)
             usuario.groups.add(grupo)
