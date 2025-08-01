@@ -1,0 +1,410 @@
+{
+	"info": {
+		"_postman_id": "sita-backend-api",
+		"name": "SITA Backend API - Sistema STRANS",
+		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "sita-backend"
+	},
+	"item": [
+		{
+			"name": "🔐 Autenticação",
+			"item": [
+				{
+					"name": "Login - Obter Token JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Salva o token automaticamente para uso nas próximas requisições",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data.access) {",
+									"        pm.environment.set('jwt_token', response.data.access);",
+									"        pm.environment.set('refresh_token', response.data.refresh);",
+									"        console.log('Token JWT salvo automaticamente!');",
+									"    }",
+									"} else {",
+									"    console.log('Erro no login:', pm.response.json());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"matricula\": \"123456789012\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"login",
+								""
+							]
+						},
+						"description": "Realiza login na API usando matrícula e senha.\n\n**Exemplo de usuários padrão:**\n- Administrador: 100000000001 / admin123\n- Atendente: 200000000001 / senha123\n- Fiscal: 300000000001 / senha123\n- Condutor: 400000000001 / senha123\n\n**Resposta de sucesso:**\n```json\n{\n    \"success\": true,\n    \"data\": {\n        \"access\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...\",\n        \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...\",\n        \"user\": {\n            \"matricula\": \"100000000001\",\n            \"nome_completo\": \"Administrador Sistema\",\n            \"email\": \"admin@strans.gov.br\",\n            \"grupos\": [\"ADMINISTRADOR\"]\n        }\n    },\n    \"message\": \"Login realizado com sucesso\"\n}\n```"
+					}
+				}
+			],
+			"description": "Endpoints relacionados à autenticação JWT no sistema."
+		},
+		{
+			"name": "👤 Usuários - Informações Próprias",
+			"item": [
+				{
+					"name": "Obter Minhas Informações",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/me/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"me",
+								""
+							]
+						},
+						"description": "Obtém informações detalhadas do usuário logado.\n\n**Autenticação necessária:** Sim\n\n**Resposta de sucesso:**\n```json\n{\n    \"success\": true,\n    \"data\": {\n        \"matricula\": \"100000000001\",\n        \"nome_completo\": \"Administrador Sistema\",\n        \"email\": \"admin@strans.gov.br\",\n        \"cpf\": \"12345678901\",\n        \"telefone\": \"(85) 99999-9999\",\n        \"data_nascimento\": \"1985-01-01\",\n        \"sexo\": \"M\",\n        \"is_active\": true,\n        \"grupos\": [\"ADMINISTRADOR\"],\n        \"data_criacao\": \"2025-01-01T10:00:00Z\"\n    },\n    \"message\": \"Dados do usuário obtidos com sucesso\"\n}\n```"
+					}
+				},
+				{
+					"name": "Atualizar Minhas Informações",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nome_completo\": \"Nome Atualizado\",\n    \"telefone\": \"(85) 88888-8888\",\n    \"data_nascimento\": \"1985-01-01\",\n    \"sexo\": \"M\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/me/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"me",
+								""
+							]
+						},
+						"description": "Atualiza informações do próprio usuário logado.\n\n**Autenticação necessária:** Sim\n\n**Campos editáveis:**\n- nome_completo\n- telefone\n- data_nascimento\n- sexo\n\n**Campos NÃO editáveis:**\n- matricula\n- email\n- cpf\n- grupos\n- is_active"
+					}
+				}
+			],
+			"description": "Endpoints para o usuário gerenciar suas próprias informações."
+		},
+		{
+			"name": "👥 Gestão de Usuários",
+			"item": [
+				{
+					"name": "Listar Usuários",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/usuarios/?page=1&page_size=10&search=&ordering=nome_completo",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"usuarios",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página (padrão: 1)"
+								},
+								{
+									"key": "page_size",
+									"value": "10",
+									"description": "Itens por página (padrão: 10, máximo: 100)"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Busca por nome, matrícula, email ou CPF"
+								},
+								{
+									"key": "ordering",
+									"value": "nome_completo",
+									"description": "Ordenação: nome_completo, matricula, data_criacao, -nome_completo (desc)"
+								}
+							]
+						},
+						"description": "Lista todos os usuários do sistema com paginação e filtros.\n\n**Autenticação necessária:** Sim\n**Permissões:** Usuários com acesso de visualização\n\n**Parâmetros de consulta:**\n- `page`: Página atual (padrão: 1)\n- `page_size`: Itens por página (padrão: 10, máx: 100)\n- `search`: Busca textual em nome, matrícula, email ou CPF\n- `ordering`: Campo de ordenação (+ asc, - desc)\n\n**Campos de ordenação disponíveis:**\n- nome_completo\n- matricula\n- data_criacao\n- email"
+					}
+				},
+				{
+					"name": "Criar Usuário",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nome_completo\": \"João Silva Santos\",\n    \"email\": \"joao.silva@strans.gov.br\",\n    \"cpf\": \"12345678901\",\n    \"telefone\": \"(85) 99999-9999\",\n    \"data_nascimento\": \"1990-05-15\",\n    \"sexo\": \"M\",\n    \"password\": \"senha123\",\n    \"groups\": [\"FISCAL\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/register/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"register",
+								""
+							]
+						},
+						"description": "Cria um novo usuário no sistema.\n\n**Autenticação necessária:** Sim\n**Permissões:** Apenas administradores podem criar outros administradores\n\n**Campos obrigatórios:**\n- nome_completo\n- email (único)\n- cpf (único, 11 dígitos)\n- data_nascimento\n- sexo (M, F, O)\n- password\n\n**Campos opcionais:**\n- telefone\n- groups (lista de grupos)\n\n**Grupos disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO  \n- FISCAL\n- CONDUTOR\n\n**Validações:**\n- CPF deve ter 11 dígitos numéricos\n- Email deve ser único\n- Telefone deve estar no formato brasileiro\n- Matrícula é gerada automaticamente"
+					}
+				},
+				{
+					"name": "Obter Usuário por Matrícula",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/100000000001/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"100000000001",
+								""
+							]
+						},
+						"description": "Obtém informações detalhadas de um usuário específico pela matrícula.\n\n**Autenticação necessária:** Sim\n**Permissões:** Próprio usuário ou usuário com permissões adequadas\n\n**Parâmetros de URL:**\n- `matricula`: Matrícula do usuário (ex: 100000000001, 300000000002, 400000000001)\n\n**Exemplo de matrícula:**\n- Administrador: 100000000001\n- Fiscal: 300000000001\n- Condutor: 400000000001"
+					}
+				},
+				{
+					"name": "Atualizar Usuário",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nome_completo\": \"João Silva Santos Atualizado\",\n    \"telefone\": \"(85) 88888-8888\",\n    \"data_nascimento\": \"1990-05-15\",\n    \"sexo\": \"M\",\n    \"groups\": [\"FISCAL\", \"CONDUTOR\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/300000000001/editar/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"300000000001",
+								"editar",
+								""
+							]
+						},
+						"description": "Atualiza informações de um usuário específico.\n\n**Autenticação necessária:** Sim\n**Permissões:** Próprio usuário ou administrador\n\n**Campos editáveis:**\n- nome_completo\n- telefone\n- data_nascimento\n- sexo\n- groups (apenas administradores)\n\n**Campos NÃO editáveis:**\n- matricula\n- email\n- cpf\n- password (use endpoint específico)\n- is_active (use endpoint específico)"
+					}
+				},
+				{
+					"name": "Ativar/Desativar Usuário",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_active\": false,\n    \"motivo\": \"Usuário solicitou desativação da conta\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/ativar-desativar/300000000002/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"ativar-desativar",
+								"300000000002",
+								""
+							]
+						},
+						"description": "Ativa ou desativa um usuário no sistema.\n\n**Autenticação necessária:** Sim\n**Permissões:** Apenas administradores\n\n**Campos:**\n- `is_active`: true para ativar, false para desativar\n- `motivo`: Motivo da ativação/desativação (opcional)\n\n**Regras:**\n- Administradores não podem se desativar\n- Usuários desativados não conseguem fazer login\n- Operação é registrada no log do sistema"
+					}
+				}
+			],
+			"description": "Endpoints para gestão completa de usuários (CRUD + funcionalidades específicas)."
+		},
+		{
+			"name": "📊 Utilitários e Informações",
+			"item": [
+				{
+					"name": "Schema da API",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/schema/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"schema",
+								""
+							]
+						},
+						"description": "Obtém o schema OpenAPI da aplicação.\n\n**Autenticação necessária:** Não\n\nRetorna a especificação completa da API em formato OpenAPI 3.0, incluindo todos os endpoints, modelos de dados e exemplos."
+					}
+				},
+				{
+					"name": "Documentação Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/docs/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"docs",
+								""
+							]
+						},
+						"description": "Acessa a documentação interativa da API via Swagger UI.\n\n**Autenticação necessária:** Não\n\nInterface web interativa para explorar e testar todos os endpoints da API."
+					}
+				}
+			],
+			"description": "Endpoints utilitários para documentação e informações do sistema."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script global executado antes de cada requisição",
+					"// Verifica se existe token JWT salvo",
+					"const token = pm.environment.get('jwt_token');",
+					"if (token) {",
+					"    console.log('Token JWT encontrado, será usado na requisição');",
+					"} else {",
+					"    console.log('Nenhum token JWT encontrado. Execute o login primeiro.');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script global executado após cada requisição",
+					"// Log do status da resposta",
+					"const statusCode = pm.response.code;",
+					"const statusText = pm.response.status;",
+					"console.log(`Resposta: ${statusCode} ${statusText}`);",
+					"",
+					"// Se for erro de autenticação, limpa o token",
+					"if (statusCode === 401) {",
+					"    pm.environment.unset('jwt_token');",
+					"    console.log('Token expirado ou inválido. Faça login novamente.');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}
