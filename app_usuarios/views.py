@@ -1,6 +1,7 @@
 import logging
 
-from rest_framework import generics, permissions, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -65,10 +66,14 @@ class UsuarioCustomListView(generics.ListAPIView):
     """
     View para listar todos os usuários.
     Requer autenticação.
+    Suporta busca por matrícula, nome, email e CPF.
     """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomViewSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['matricula', 'nome_completo', 'email', 'cpf']
+    filterset_fields = ['is_active', 'is_staff', 'is_superuser']
 
 
 class UsuarioCustomCreateView(generics.CreateAPIView):
