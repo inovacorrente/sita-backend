@@ -54,9 +54,10 @@ def validar_cpf(value):
             )
 
         # Valida como string numérica usando validator-collection
-        validators.numeric(cpf, minimum=10000000000, maximum=99999999999)
+        validators.numeric(cpf, minimum=00000000000, maximum=99999999999)
 
-    except (errors.InvalidValueError, ValueError):
+    except (errors.CannotCoerceError, errors.MinimumValueError,
+            errors.MaximumValueError, ValueError):
         raise serializers.ValidationError(
             "CPF inválido. Verifique os dígitos e tente novamente."
         )
@@ -69,7 +70,7 @@ def validar_email(value):
     try:
         # Valida formato do email
         validators.email(value)
-    except (errors.InvalidValueError, ValueError):
+    except (errors.InvalidEmailError, ValueError):
         raise serializers.ValidationError(
             "Formato de e-mail inválido. Use o formato: exemplo@dominio.com"
         )
@@ -78,44 +79,66 @@ def validar_email(value):
 
 
 def validar_telefone(value):
-    """Valida formato do telefone usando validator-collection"""
+    """
+    Valida formato do telefone usando validator-collection.
+
+    Retorna apenas os dígitos do telefone se válido.
+    Em caso de erro, retorna mensagem padronizada conforme API SITA.
+    """
     if value:
-        # Remove caracteres não numéricos
         telefone = re.sub(r'\D', '', value)
-
         try:
-            # Valida como string numérica
             validators.numeric(telefone)
-
-            # Verifica tamanho (10 ou 11 dígitos)
             if len(telefone) < 10 or len(telefone) > 11:
-                raise serializers.ValidationError(
-                    "Telefone deve ter 10 ou 11 dígitos com DDD. "
-                    "Exemplo: (11) 99999-9999"
-                )
-
-            # Valida se começa com códigos válidos
+                raise serializers.ValidationError({
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_PHONE_LENGTH",
+                        "message": (
+                            "Telefone deve ter 10 ou 11 dígitos com DDD. "
+                            "Exemplo: (11) 99999-9999"
+                        ),
+                        "details": {"telefone": telefone}
+                    }
+                })
             if len(telefone) == 11:
-                # Celular: deve começar com 9
                 if not telefone[2:3] == '9':
-                    raise serializers.ValidationError(
-                        "Número de celular deve começar com 9 após o DDD. "
-                        "Exemplo: (11) 99999-9999"
-                    )
+                    raise serializers.ValidationError({
+                        "success": False,
+                        "error": {
+                            "code": "INVALID_CELLPHONE_FORMAT",
+                            "message": (
+                                "Número de celular deve começar com 9 "
+                                "após o DDD. Exemplo: (11) 99999-9999"
+                            ),
+                            "details": {"telefone": telefone}
+                        }
+                    })
             elif len(telefone) == 10:
-                # Fixo: não deve começar com 9
                 if telefone[2:3] == '9':
-                    raise serializers.ValidationError(
-                        "Telefone fixo não deve começar com 9 após o DDD. "
-                        "Exemplo: (11) 3333-4444"
-                    )
-
-        except (errors.InvalidValueError, ValueError):
-            raise serializers.ValidationError(
-                "Formato de telefone inválido. "
-                "Use apenas números com DDD."
-            )
-
+                    raise serializers.ValidationError({
+                        "success": False,
+                        "error": {
+                            "code": "INVALID_LANDLINE_FORMAT",
+                            "message": (
+                                "Telefone fixo não deve começar com 9 "
+                                "após o DDD. Exemplo: (11) 3333-4444"
+                            ),
+                            "details": {"telefone": telefone}
+                        }
+                    })
+        except (errors.CannotCoerceError, ValueError):
+            raise serializers.ValidationError({
+                "success": False,
+                "error": {
+                    "code": "INVALID_PHONE_FORMAT",
+                    "message": (
+                        "Formato de telefone inválido. "
+                        "Use apenas números com DDD."
+                    ),
+                    "details": {"telefone": value}
+                }
+            })
         return telefone
     return value
 

@@ -1,9 +1,9 @@
 from django.urls import path
 
-from .views import (  # Autenticação; CRUD de Usuários; Funcionalidades específicas
-    CustomTokenObtainPairView, UsuarioAtivarDesativarView,
-    UsuarioCustomCreateView, UsuarioCustomDetailView, UsuarioCustomListView,
-    UsuarioCustomUpdateView, UsuarioMeView)
+from .views import (CustomTokenObtainPairView, UsuarioAtivarDesativarView,
+                    UsuarioCustomCreateView, UsuarioCustomDetailView,
+                    UsuarioCustomListView, UsuarioCustomUpdateView,
+                    UsuarioMeView)
 
 urlpatterns = [
     # Autenticação
@@ -22,7 +22,7 @@ urlpatterns = [
 
     # CRUD de Usuários
     path(
-        'usuarios/',
+        'listar/',
         UsuarioCustomListView.as_view(),
         name='usuario_list'
     ),

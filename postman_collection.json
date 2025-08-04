@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "sita-backend-api",
 		"name": "SITA Backend API - Sistema STRANS",
-		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR",
+		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários com busca e filtros avançados\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Funcionalidades de Busca:**\n- Busca por matrícula, nome, email ou CPF\n- Filtros por status (ativo/inativo, staff, superuser)\n- Ordenação por diferentes campos\n- Paginação configurável\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR\n\n**URLs principais:**\n- Login: `/api/usuarios/login/`\n- Listar usuários: `/api/usuarios/listar/`\n- Criar usuário: `/api/usuarios/register/`\n- Meus dados: `/api/usuarios/me/`",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "sita-backend"
 	},
@@ -149,14 +149,14 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/usuarios/usuarios/?page=1&page_size=10&search=&ordering=nome_completo",
+							"raw": "{{base_url}}/api/usuarios/listar/?page=1&page_size=10&search=&is_active=&is_staff=&ordering=nome_completo",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"usuarios",
-								"usuarios",
+								"listar",
 								""
 							],
 							"query": [
@@ -173,16 +173,247 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Busca por nome, matrícula, email ou CPF"
+									"description": "Busca por matrícula, nome, email ou CPF. Ex: '100000000001', 'Carlos', 'admin@exemplo.com'"
+								},
+								{
+									"key": "is_active",
+									"value": "",
+									"description": "Filtrar por status ativo: true ou false"
+								},
+								{
+									"key": "is_staff",
+									"value": "",
+									"description": "Filtrar por usuários staff: true ou false"
+								},
+								{
+									"key": "is_superuser",
+									"value": "",
+									"description": "Filtrar por superusuários: true ou false"
 								},
 								{
 									"key": "ordering",
 									"value": "nome_completo",
-									"description": "Ordenação: nome_completo, matricula, data_criacao, -nome_completo (desc)"
+									"description": "Ordenação: nome_completo, matricula, data_criacao, email. Use '-' para desc (ex: -nome_completo)"
 								}
 							]
 						},
-						"description": "Lista todos os usuários do sistema com paginação e filtros.\n\n**Autenticação necessária:** Sim\n**Permissões:** Usuários com acesso de visualização\n\n**Parâmetros de consulta:**\n- `page`: Página atual (padrão: 1)\n- `page_size`: Itens por página (padrão: 10, máx: 100)\n- `search`: Busca textual em nome, matrícula, email ou CPF\n- `ordering`: Campo de ordenação (+ asc, - desc)\n\n**Campos de ordenação disponíveis:**\n- nome_completo\n- matricula\n- data_criacao\n- email"
+						"description": "Lista todos os usuários do sistema com paginação, busca e filtros.\n\n**Autenticação necessária:** Sim\n**Permissões:** Usuários autenticados\n\n**Parâmetros de consulta:**\n- `page`: Página atual (padrão: 1)\n- `page_size`: Itens por página (padrão: 10, máx: 100)\n- `search`: Busca textual em matrícula, nome_completo, email ou CPF\n- `is_active`: Filtro por status ativo (true/false)\n- `is_staff`: Filtro por usuários staff (true/false)\n- `is_superuser`: Filtro por superusuários (true/false)\n- `ordering`: Campo de ordenação (+ asc, - desc)\n\n**Exemplos de busca:**\n- Buscar por matrícula: `?search=100000000001`\n- Buscar por nome: `?search=Carlos`\n- Buscar por email: `?search=admin@exemplo.com`\n- Buscar por CPF: `?search=12345678901`\n- Filtrar ativos: `?is_active=true`\n- Filtrar staff: `?is_staff=true`\n- Ordenar por data (mais recente): `?ordering=-data_criacao`\n\n**Campos de ordenação disponíveis:**\n- nome_completo, matricula, data_criacao, email"
+					}
+				},
+				{
+					"name": "🔍 Buscar Usuário por Matrícula",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?search=100000000001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "100000000001",
+									"description": "Matrícula do usuário administrador padrão"
+								}
+							]
+						},
+						"description": "Busca usuário por matrícula específica.\n\n**Exemplo:** Busca pelo administrador padrão com matrícula '100000000001'"
+					}
+				},
+				{
+					"name": "🔍 Buscar Usuário por Nome",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?search=Carlos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "Carlos",
+									"description": "Busca parcial por nome"
+								}
+							]
+						},
+						"description": "Busca usuários cujo nome contenha o termo especificado.\n\n**Exemplo:** Busca todos os usuários com 'Carlos' no nome"
+					}
+				},
+				{
+					"name": "🔍 Buscar Usuário por Email",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?search=admin@exemplo.com",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "admin@exemplo.com",
+									"description": "Email completo ou parcial"
+								}
+							]
+						},
+						"description": "Busca usuários por email completo ou parcial.\n\n**Exemplo:** Busca o usuário administrador padrão"
+					}
+				},
+				{
+					"name": "🔍 Buscar Usuário por CPF",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?search=89306725400",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "89306725400",
+									"description": "CPF (apenas números)"
+								}
+							]
+						},
+						"description": "Busca usuário por CPF (apenas números).\n\n**Exemplo:** Busca pelo CPF do usuário Carlos Eduardo"
+					}
+				},
+				{
+					"name": "🔍 Filtrar Usuários Ativos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?is_active=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "is_active",
+									"value": "true",
+									"description": "Filtrar apenas usuários ativos"
+								}
+							]
+						},
+						"description": "Lista apenas usuários com status ativo.\n\n**Valores possíveis:** true, false"
+					}
+				},
+				{
+					"name": "🔍 Filtrar Usuários Staff",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/listar/?is_staff=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"listar",
+								""
+							],
+							"query": [
+								{
+									"key": "is_staff",
+									"value": "true",
+									"description": "Filtrar apenas usuários staff (administradores)"
+								}
+							]
+						},
+						"description": "Lista apenas usuários com privilégios administrativos (staff).\n\n**Valores possíveis:** true, false"
 					}
 				},
 				{
