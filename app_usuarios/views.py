@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .exceptions import SuccessResponse
+from .exceptions import (SuccessResponse, ValidationErrorResponse,
+                         format_error_response)
 from .models import UsuarioCustom
 from .serializers import (CustomTokenObtainPairSerializer,
                           IsAdminToCreateAdmin,
@@ -171,12 +172,8 @@ class UsuarioMeView(APIView):
                 f"{serializer.errors}"
             )
 
-            # Formatar erros de validação seguindo o padrão do projeto
-            error_response = {
-                'success': False,
-                'message': 'Erro de validação dos dados fornecidos.',
-                'errors': serializer.errors
-            }
+            # Usar o formatador padrão de erros de validação
+            error_response = format_error_response(serializer.errors, 400)
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
@@ -184,15 +181,10 @@ class UsuarioMeView(APIView):
                 f"Erro inesperado ao atualizar dados do usuário "
                 f"{request.user.matricula}: {str(e)}"
             )
-            error_response = {
-                'success': False,
-                'message': 'Erro interno do servidor.',
-                'error': {
-                    'code': 'INTERNAL_SERVER_ERROR',
-                    'message': 'Ocorreu um erro inesperado. Tente novamente.',
-                    'details': 'Se o problema persistir, contate o suporte.'
-                }
-            }
+            # Usar o formatador padrão para erro interno do servidor
+            error_response = format_error_response(
+                "Ocorreu um erro inesperado. Tente novamente.", 500
+            )
             return Response(
                 error_response,
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -213,31 +205,21 @@ class UsuarioAtivarDesativarView(APIView):
     """
     permission_classes = [permissions.IsAuthenticated]
 
-    def patch(self, request):
+    def patch(self, request, matricula, *args, **kwargs):
         """
         Ativa ou desativa um usuário.
         """
-        serializer = UsuarioAtivarDesativarSerializer(data=request.data)
+        data = request.data.copy()
+        data['matricula'] = matricula
+        serializer = UsuarioAtivarDesativarSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        matricula = request.data.get('matricula')
 
-        # Se admin, pode passar a matrícula de qualquer usuário
+        # Se admin, pode alterar qualquer usuário pela matrícula da URL
         if request.user.is_staff or request.user.is_superuser:
             if not matricula:
-                error_response = {
-                    'success': False,
-                    'message': 'Matrícula é obrigatória para administradores.',
-                    'error': {
-                        'code': 'MISSING_MATRICULA',
-                        'message': (
-                            'Matrícula é obrigatória para administradores.'
-                        ),
-                        'details': (
-                            'Administradores devem fornecer a matrícula '
-                            'do usuário a ser alterado.'
-                        )
-                    }
-                }
+                error_response = ValidationErrorResponse.required_field(
+                    'matricula'
+                )
                 return Response(
                     error_response,
                     status=status.HTTP_400_BAD_REQUEST
@@ -245,20 +227,7 @@ class UsuarioAtivarDesativarView(APIView):
             try:
                 user = UsuarioCustom.objects.get(matricula=matricula)
             except UsuarioCustom.DoesNotExist:
-                error_response = {
-                    'success': False,
-                    'message': 'Usuário não encontrado.',
-                    'error': {
-                        'code': 'USER_NOT_FOUND',
-                        'message': (
-                            'Usuário com a matrícula informada não existe.'
-                        ),
-                        'details': (
-                            f'Nenhum usuário encontrado '
-                            f'com matrícula: {matricula}'
-                        )
-                    }
-                }
+                error_response = ValidationErrorResponse.user_not_found()
                 return Response(
                     error_response,
                     status=status.HTTP_404_NOT_FOUND
@@ -266,19 +235,8 @@ class UsuarioAtivarDesativarView(APIView):
         else:
             # Usuário comum só pode alterar a si mesmo
             user = request.user
-            if matricula and matricula != user.matricula:
-                error_response = {
-                    'success': False,
-                    'message': 'Acesso negado.',
-                    'error': {
-                        'code': 'FORBIDDEN_OPERATION',
-                        'message': 'Você só pode alterar seu próprio status.',
-                        'details': (
-                            'Usuários não administradores só podem '
-                            'alterar seu próprio status.'
-                        )
-                    }
-                }
+            if matricula != user.matricula:
+                error_response = ValidationErrorResponse.permission_denied()
                 return Response(
                     error_response,
                     status=status.HTTP_403_FORBIDDEN
@@ -290,4 +248,11 @@ class UsuarioAtivarDesativarView(APIView):
             f'Usuário {"ativado" if user.is_active else "desativado"} '
             f'com sucesso.'
         )
-        return Response({'detail': status_msg}, status=status.HTTP_200_OK)
+        success_response = SuccessResponse.updated(
+            {
+                'matricula': user.matricula,
+                'is_active': user.is_active
+            },
+            status_msg
+        )
+        return Response(success_response, status=status.HTTP_200_OK)

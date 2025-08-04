@@ -22,7 +22,7 @@ urlpatterns = [
 
     # CRUD de Usuários
     path(
-        'usuarios/',
+        'listar/',
         UsuarioCustomListView.as_view(),
         name='usuario_list'
     ),
