@@ -33,14 +33,17 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
 
 
 # Application definition
-APPS = [
+PLUGINS_EXTENSIONS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
     'django_filters',
-    'app_usuarios',
+]
 
+APPS = [
+    'app_usuarios',
+    'app_condutores',
 ]
 
 INSTALLED_APPS = [
@@ -50,7 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-] + APPS
+] + PLUGINS_EXTENSIONS + APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

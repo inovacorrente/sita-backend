@@ -7,30 +7,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .exceptions import (SuccessResponse, ValidationErrorResponse,
-                         format_error_response)
+from utils.app_usuarios.exceptions import ValidationErrorResponse
+from utils.commons.exceptions import SuccessResponse
+from utils.commons.validators import format_error_response
+from utils.permissions.base import (IsAdminToCreateAdmin,
+                                    IsSelfOrHasModelPermission)
+
 from .models import UsuarioCustom
 from .serializers import (CustomTokenObtainPairSerializer,
-                          IsAdminToCreateAdmin,
                           UsuarioAtivarDesativarSerializer,
                           UsuarioCustomCreateSerializer,
                           UsuarioCustomViewSerializer, UsuarioMeSerializer)
 
 logger = logging.getLogger(__name__)
-
-# ============================================================================
-# PERMISSIONS CUSTOMIZADAS
-# ============================================================================
-
-
-class IsSelfOrHasModelPermission(permissions.BasePermission):
-    """
-    Permissão que permite acesso se o usuário é o próprio objeto
-    ou tem permissões de modelo Django.
-    """
-
-    def has_object_permission(self, request, view, obj):
-        return obj == request.user
 
 
 # ============================================================================
