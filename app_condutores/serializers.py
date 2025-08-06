@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib.auth.models import Group
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from app_usuarios.models import UsuarioCustom
@@ -110,11 +111,13 @@ class CondutorDetailSerializer(serializers.ModelSerializer):
             'data_criacao', 'data_atualizacao'
         ]
 
-    def get_cnh_vencida(self, obj):
+    @extend_schema_field(serializers.BooleanField)
+    def get_cnh_vencida(self, obj) -> bool:
         """Retorna se a CNH está vencida."""
         return obj.data_validade_cnh < date.today()
 
-    def get_dias_para_vencimento(self, obj):
+    @extend_schema_field(serializers.IntegerField)
+    def get_dias_para_vencimento(self, obj) -> int:
         """Retorna quantos dias faltam para a CNH vencer."""
         diferenca = obj.data_validade_cnh - date.today()
         return diferenca.days

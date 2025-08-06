@@ -127,6 +127,7 @@ class UsuarioMeView(APIView):
     - PUT/PATCH: Atualizar próprios dados (campos limitados)
     """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UsuarioMeSerializer  # Para documentação API
 
     def get(self, request):
         """
@@ -198,6 +199,8 @@ class UsuarioAtivarDesativarView(APIView):
     - Usuários comuns só podem alterar seu próprio status
     """
     permission_classes = [permissions.IsAuthenticated]
+    # Para documentação da API
+    serializer_class = UsuarioAtivarDesativarSerializer
 
     def patch(self, request, matricula, *args, **kwargs):
         """

@@ -1,10 +1,13 @@
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import NotFound
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from utils.commons.exceptions import SuccessResponse
 
 from .models import Condutor
 from .serializers import (CondutorCreateSerializer, CondutorDetailSerializer,
@@ -89,3 +92,51 @@ class CondutorViewSet(mixins.CreateModelMixin,
             return CondutorUpdateSerializer
         else:  # list e outras ações
             return CondutorListSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Cria um novo condutor e retorna resposta de sucesso padronizada.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        condutor = serializer.save()
+
+        # Serializa os dados para retorno
+        response_serializer = CondutorDetailSerializer(condutor)
+        success_data = SuccessResponse.created(
+            response_serializer.data,
+            "Condutor criado com sucesso."
+        )
+        return Response(success_data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Recupera dados detalhados de um condutor específico.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        success_data = SuccessResponse.retrieved(
+            serializer.data,
+            "Dados do condutor recuperados com sucesso."
+        )
+        return Response(success_data, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Atualiza dados do condutor e retorna resposta de sucesso padronizada.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        condutor = serializer.save()
+
+        # Serializa os dados para retorno
+        response_serializer = CondutorDetailSerializer(condutor)
+        success_data = SuccessResponse.updated(
+            response_serializer.data,
+            "Dados do condutor atualizados com sucesso."
+        )
+        return Response(success_data, status=status.HTTP_200_OK)
