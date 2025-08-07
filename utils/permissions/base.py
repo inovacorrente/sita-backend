@@ -1,10 +1,24 @@
 from django.contrib.auth.models import Group
 from rest_framework import permissions
+from rest_framework.permissions import BasePermission, DjangoModelPermissions
+
+
+class DjangoModelPermissionsWithView(DjangoModelPermissions):
+    """
+    Classe de permissão que estende a padrão do DRF
+    para também verificar a permissão de 'view' para requisições GET.
+    """
+
+    def __init__(self):
+        # Adiciona o mapeamento para métodos GET
+        self.perms_map['GET'] = ['%(app_label)s.view_%(model_name)s']
 
 
 # ============================================================================
 # PERMISSIONS CUSTOMIZADAS
 # ============================================================================
+
+
 class IsSelfOrHasModelPermission(permissions.BasePermission):
     """
     Permissão que permite acesso se o usuário é o próprio objeto
