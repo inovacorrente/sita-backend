@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from rest_framework import serializers
 from validator_collection import errors, validators
 
-from .models import UsuarioCustom
+from app_usuarios.models import UsuarioCustom
 
 # ============================================================================
 # VALIDADORES DE CAMPO BÁSICOS

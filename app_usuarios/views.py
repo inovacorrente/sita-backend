@@ -7,30 +7,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .exceptions import (SuccessResponse, ValidationErrorResponse,
-                         format_error_response)
+from utils.app_usuarios.exceptions import ValidationErrorResponse
+from utils.commons.exceptions import SuccessResponse
+from utils.commons.validators import format_error_response
+from utils.permissions.base import (DjangoModelPermissionsWithView,
+                                    IsAdminToCreateAdmin,
+                                    IsSelfOrHasModelPermission)
+
 from .models import UsuarioCustom
 from .serializers import (CustomTokenObtainPairSerializer,
-                          IsAdminToCreateAdmin,
-                          UsuarioAtivarDesativarSerializer,
                           UsuarioCustomCreateSerializer,
                           UsuarioCustomViewSerializer, UsuarioMeSerializer)
 
 logger = logging.getLogger(__name__)
-
-# ============================================================================
-# PERMISSIONS CUSTOMIZADAS
-# ============================================================================
-
-
-class IsSelfOrHasModelPermission(permissions.BasePermission):
-    """
-    Permissão que permite acesso se o usuário é o próprio objeto
-    ou tem permissões de modelo Django.
-    """
-
-    def has_object_permission(self, request, view, obj):
-        return obj == request.user
 
 
 # ============================================================================
@@ -70,7 +59,8 @@ class UsuarioCustomListView(generics.ListAPIView):
     """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomViewSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated,
+                          DjangoModelPermissionsWithView]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['matricula', 'nome_completo', 'email', 'cpf']
     filterset_fields = ['is_active', 'is_staff', 'is_superuser']
@@ -138,6 +128,7 @@ class UsuarioMeView(APIView):
     - PUT/PATCH: Atualizar próprios dados (campos limitados)
     """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UsuarioMeSerializer  # Para documentação API
 
     def get(self, request):
         """
@@ -207,28 +198,27 @@ class UsuarioAtivarDesativarView(APIView):
     View para ativar/desativar usuários.
     - Admins podem ativar/desativar qualquer usuário
     - Usuários comuns só podem alterar seu próprio status
+    - Alterna automaticamente o status is_active (toggle)
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, matricula, *args, **kwargs):
         """
-        Ativa ou desativa um usuário.
+        Alterna o status is_active do usuário
+        (ativa se inativo, desativa se ativo).
         """
-        data = request.data.copy()
-        data['matricula'] = matricula
-        serializer = UsuarioAtivarDesativarSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        # Validar se matrícula foi fornecida
+        if not matricula:
+            error_response = ValidationErrorResponse.required_field(
+                'matricula'
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Se admin, pode alterar qualquer usuário pela matrícula da URL
         if request.user.is_staff or request.user.is_superuser:
-            if not matricula:
-                error_response = ValidationErrorResponse.required_field(
-                    'matricula'
-                )
-                return Response(
-                    error_response,
-                    status=status.HTTP_400_BAD_REQUEST
-                )
             try:
                 user = UsuarioCustom.objects.get(matricula=matricula)
             except UsuarioCustom.DoesNotExist:
@@ -247,8 +237,17 @@ class UsuarioAtivarDesativarView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        user.is_active = serializer.validated_data['is_active']
+        # Alternar o status is_active (toggle)
+        user.is_active = not user.is_active
         user.save()
+
+        # Log da operação
+        logger.info(
+            f"Usuário {user.matricula} foi "
+            f"{'ativado' if user.is_active else 'desativado'} "
+            f"por {request.user.matricula}"
+        )
+
         status_msg = (
             f'Usuário {"ativado" if user.is_active else "desativado"} '
             f'com sucesso.'
@@ -256,7 +255,7 @@ class UsuarioAtivarDesativarView(APIView):
         success_response = SuccessResponse.updated(
             {
                 'matricula': user.matricula,
-                'is_active': user.is_active
+                'is_active': user.is_active,
             },
             status_msg
         )
