@@ -116,7 +116,7 @@ class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
     username = None  # Removendo campo username
 
     USERNAME_FIELD = 'matricula'
-    REQUIRED_FIELDS = ['email', 'nome_completo']
+    REQUIRED_FIELDS = ['email', 'nome_completo', 'data_nascimento']
 
     objects = CustomUserManager()
 

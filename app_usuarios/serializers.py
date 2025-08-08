@@ -208,8 +208,9 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         password = attrs.get('password')
         password_confirm = attrs.pop('password_confirm', None)
 
-        # Define senha padrão como matrícula se necessário
-        attrs = set_default_password_as_matricula(attrs)
+        # Define senha padrão como matrícula APENAS na criação (não na edição)
+        if not self.instance:  # Se não há instance, é criação
+            attrs = set_default_password_as_matricula(attrs)
 
         # Valida confirmação de senha
         validate_password_confirmation(password, password_confirm)
@@ -261,7 +262,7 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # Atualiza senha se fornecida
+        # Atualiza senha APENAS se fornecida explicitamente
         if password:
             instance.set_password(password)
 
@@ -272,6 +273,7 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
             instance.groups.set(groups)
 
         return instance
+        
 
 
 # ============================================================================
