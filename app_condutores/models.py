@@ -27,6 +27,7 @@ class Condutor(models.Model):
     data_atualizacao = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = 'app_condutores'
         verbose_name = 'condutor'
         verbose_name_plural = 'condutores'
 
