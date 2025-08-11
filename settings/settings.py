@@ -177,3 +177,18 @@ AUTH_USER_MODEL = 'app_usuarios.UsuarioCustom'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API de Gestão de Condutores e Usuários',
+    'DESCRIPTION': 'Documentação oficial da API com Django Rest Framework e drf-spectacular.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'TAGS': [
+        {'name': 'Usuários', 'description': 'Operações relacionadas a usuários'},
+        {'name': 'condutores', 'description': 'Operações relacionadas a condutores'},
+        {'name': 'Autenticação', 'description': 'Operações com tokens'},
+        {'name': 'Schema', 'description': 'Esquema OpenAPI'},
+    ],
+    'SORT_OPERATIONS_ALPHABETICALLY': False,
+    'SORT_TAGS': True,
+}
