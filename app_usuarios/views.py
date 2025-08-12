@@ -1,8 +1,10 @@
+
 import logging
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -16,6 +18,7 @@ from utils.permissions.base import (DjangoModelPermissionsWithView,
 
 from .models import UsuarioCustom
 from .serializers import (CustomTokenObtainPairSerializer,
+                          UsuarioAtivarDesativarSerializer,
                           UsuarioCustomCreateSerializer,
                           UsuarioCustomViewSerializer, UsuarioMeSerializer)
 
@@ -193,7 +196,7 @@ class UsuarioMeView(APIView):
         return self.put(request)
 
 
-class UsuarioAtivarDesativarView(APIView):
+class UsuarioAtivarDesativarView(GenericAPIView):
     """
     View para ativar/desativar usuários.
     - Admins podem ativar/desativar qualquer usuário
@@ -201,8 +204,13 @@ class UsuarioAtivarDesativarView(APIView):
     - Alterna automaticamente o status is_active (toggle)
     """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UsuarioAtivarDesativarSerializer
 
     def patch(self, request, matricula, *args, **kwargs):
+        data = {"matricula": matricula}
+        data.update(request.data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
         """
         Alterna o status is_active do usuário
         (ativa se inativo, desativa se ativo).
