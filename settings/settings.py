@@ -45,6 +45,8 @@ PLUGINS_EXTENSIONS = [
 APPS = [
     'app_usuarios.apps.AppUsuariosConfig',
     'app_condutores.apps.AppCondutoresConfig',
+    'app_veiculos.apps.AppVeiculosConfig',
+    'documentos.apps.DocumentosConfig',
 ]
 
 INSTALLED_APPS = [
@@ -133,6 +135,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Media (arquivos enviados)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
