@@ -190,6 +190,639 @@ curl -X GET "http://localhost:8000/api/usuarios/listar/?is_active=true&is_staff=
 
 *⚠️ Requer autenticação apenas para criar administradores*
 
+## 📋 Exemplos Completos dos Endpoints
+
+### 🔐 1. Autenticação - Login
+
+**Endpoint:** `POST /api/usuarios/login/`
+
+**Descrição:** Autentica usuário e retorna tokens JWT
+
+**Corpo da Requisição:**
+```json
+{
+  "matricula": "123456789012",
+  "password": "admin123"
+}
+```
+
+**Exemplo com cURL:**
+```bash
+curl -X POST http://localhost:8000/api/usuarios/login/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "matricula": "123456789012",
+    "password": "admin123"
+  }'
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Login realizado com sucesso.",
+  "data": {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM5MzQ2MDAwfQ...",
+    "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTczOTQzMjQwMH0...",
+    "token_type": "Bearer",
+    "expires_in": 3600
+  }
+}
+```
+
+**Resposta de Erro (401):**
+```json
+{
+  "success": false,
+  "status_code": 401,
+  "message": "Credenciais inválidas.",
+  "errors": {
+    "non_field_errors": "Matrícula ou senha incorretos."
+  },
+  "details": "Verifique sua matrícula e senha e tente novamente."
+}
+```
+
+---
+
+### 👤 2. Usuários - Cadastro
+
+**Endpoint:** `POST /api/usuarios/register/`
+
+**Descrição:** Cria novo usuário (senha opcional - usa matrícula como padrão)
+
+**Corpo da Requisição (Usuário Comum):**
+```json
+{
+  "nome_completo": "João Silva Santos",
+  "email": "joao.silva@email.com",
+  "cpf": "12345678901",
+  "data_nascimento": "1990-05-15",
+  "sexo": "M",
+  "telefone": "85987654321"
+}
+```
+
+**Corpo da Requisição (Com Senha Personalizada):**
+```json
+{
+  "nome_completo": "Maria Santos",
+  "email": "maria.santos@email.com",
+  "cpf": "98765432100",
+  "password": "minhasenha123",
+  "data_nascimento": "1985-06-15",
+  "sexo": "F",
+  "telefone": "85999887766",
+  "groups": [1, 2]
+}
+```
+
+**Corpo da Requisição (Administrador - requer auth):**
+```json
+{
+  "nome_completo": "Admin Sistema",
+  "email": "admin@sistema.com",
+  "cpf": "11122233344",
+  "password": "senhaadmin123",
+  "data_nascimento": "1980-01-01",
+  "sexo": "M",
+  "is_staff": true,
+  "is_superuser": true
+}
+```
+
+**Resposta de Sucesso (201):**
+```json
+{
+  "nome_completo": "João Silva Santos",
+  "email": "joao.silva@email.com",
+  "matricula": "202590125123",
+  "cpf": "12345678901",
+  "telefone": "85987654321",
+  "data_nascimento": "1990-05-15",
+  "sexo": "M",
+  "is_active": true,
+  "is_staff": false,
+  "is_superuser": false,
+  "groups": []
+}
+```
+
+**Resposta de Erro - CPF Inválido (400):**
+```json
+{
+  "success": false,
+  "status_code": 400,
+  "message": "CPF inválido.",
+  "errors": {
+    "cpf": "O CPF fornecido não é válido. Verifique os dígitos e tente novamente."
+  },
+  "details": "O CPF deve conter 11 dígitos numéricos válidos."
+}
+```
+
+**Resposta de Erro - Email Já Existe (409):**
+```json
+{
+  "success": false,
+  "status_code": 409,
+  "message": "E-mail já está em uso.",
+  "errors": {
+    "email": "Este e-mail já está cadastrado no sistema."
+  },
+  "details": "Cada e-mail pode ser usado apenas uma vez no sistema."
+}
+```
+
+---
+
+### 📋 3. Usuários - Listar com Filtros
+
+**Endpoint:** `GET /api/usuarios/listar/`
+
+**Descrição:** Lista usuários com busca e filtros avançados
+
+**Parâmetros de Query:**
+- `search`: Busca por matrícula, nome, email ou CPF
+- `is_active`: Filtrar por status ativo/inativo
+- `is_staff`: Filtrar por administradores
+- `is_superuser`: Filtrar por superusuários
+- `page`: Número da página
+- `page_size`: Itens por página
+
+**Exemplos de Requisições:**
+```bash
+# Busca simples
+GET /api/usuarios/listar/?search=João
+
+# Filtros combinados
+GET /api/usuarios/listar/?is_active=true&is_staff=false&page=1
+
+# Busca por CPF
+GET /api/usuarios/listar/?search=12345678901
+
+# Apenas administradores ativos
+GET /api/usuarios/listar/?is_staff=true&is_active=true
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "count": 25,
+  "next": "http://localhost:8000/api/usuarios/listar/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "nome_completo": "João Silva Santos",
+      "email": "joao.silva@email.com",
+      "matricula": "202590125123",
+      "cpf": "12345678901",
+      "telefone": "85987654321",
+      "data_nascimento": "1990-05-15",
+      "sexo": "M",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": []
+    },
+    {
+      "nome_completo": "Maria Santos",
+      "email": "maria.santos@email.com",
+      "matricula": "202510025456",
+      "cpf": "98765432100",
+      "telefone": "85999887766",
+      "data_nascimento": "1985-06-15",
+      "sexo": "F",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [1]
+    }
+  ]
+}
+```
+
+---
+
+### 👁️ 4. Usuários - Ver Próprios Dados
+
+**Endpoint:** `GET /api/usuarios/me/`
+
+**Descrição:** Retorna dados do usuário autenticado
+
+**Headers Obrigatórios:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Dados do usuário recuperados com sucesso.",
+  "data": {
+    "nome_completo": "João Silva Santos",
+    "email": "joao.silva@email.com",
+    "matricula": "202590125123",
+    "cpf": "12345678901",
+    "telefone": "85987654321",
+    "data_nascimento": "1990-05-15",
+    "sexo": "M"
+  }
+}
+```
+
+---
+
+### ✏️ 5. Usuários - Atualizar Próprios Dados
+
+**Endpoint:** `PATCH /api/usuarios/me/`
+
+**Descrição:** Permite ao usuário atualizar seus próprios dados
+
+**Corpo da Requisição:**
+```json
+{
+  "telefone": "85999888777",
+  "email": "novo.email@email.com"
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Dados atualizados com sucesso.",
+  "data": {
+    "nome_completo": "João Silva Santos",
+    "email": "novo.email@email.com",
+    "matricula": "202590125123",
+    "cpf": "12345678901",
+    "telefone": "85999888777",
+    "data_nascimento": "1990-05-15",
+    "sexo": "M"
+  }
+}
+```
+
+---
+
+### 👥 6. Usuários - Ver Usuário Específico
+
+**Endpoint:** `GET /api/usuarios/<matricula>/`
+
+**Descrição:** Visualiza dados de usuário específico (próprios dados ou admin)
+
+**Exemplo:** `GET /api/usuarios/202590125123/`
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "nome_completo": "João Silva Santos",
+  "email": "joao.silva@email.com",
+  "matricula": "202590125123",
+  "cpf": "12345678901",
+  "telefone": "85987654321",
+  "data_nascimento": "1990-05-15",
+  "sexo": "M",
+  "is_active": true,
+  "is_staff": false,
+  "is_superuser": false,
+  "groups": []
+}
+```
+
+**Resposta de Erro - Sem Permissão (403):**
+```json
+{
+  "success": false,
+  "status_code": 403,
+  "message": "Acesso negado.",
+  "errors": {
+    "permission": "Você não tem permissão para executar esta ação."
+  },
+  "details": "Entre em contato com o administrador se precisar de mais permissões."
+}
+```
+
+---
+
+### 📝 7. Usuários - Editar Usuário (Admin)
+
+**Endpoint:** `PATCH /api/usuarios/<matricula>/editar/`
+
+**Descrição:** Atualiza dados de qualquer usuário (apenas admins)
+
+**Exemplo:** `PATCH /api/usuarios/202590125123/editar/`
+
+**Corpo da Requisição:**
+```json
+{
+  "telefone": "85999888777",
+  "is_active": false,
+  "groups": [1, 2]
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "nome_completo": "João Silva Santos",
+  "email": "joao.silva@email.com",
+  "cpf": "12345678901",
+  "telefone": "85999888777",
+  "data_nascimento": "1990-05-15",
+  "sexo": "M",
+  "is_active": false,
+  "is_staff": false,
+  "is_superuser": false,
+  "groups": [1, 2]
+}
+```
+
+---
+
+### 🔄 8. Usuários - Ativar/Desativar (Toggle)
+
+**Endpoint:** `PATCH /api/usuarios/ativar-desativar/<matricula>/`
+
+**Descrição:** Alterna automaticamente o status is_active do usuário
+
+**Exemplo:** `PATCH /api/usuarios/ativar-desativar/202590125123/`
+
+**Corpo da Requisição:** Nenhum (vazio)
+
+**Resposta de Sucesso - Usuário Ativado (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Usuário ativado com sucesso.",
+  "data": {
+    "matricula": "202590125123",
+    "is_active": true
+  }
+}
+```
+
+**Resposta de Sucesso - Usuário Desativado (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Usuário desativado com sucesso.",
+  "data": {
+    "matricula": "202590125123",
+    "is_active": false
+  }
+}
+```
+
+---
+
+### 🚗 9. Condutores - Listar
+
+**Endpoint:** `GET /api/condutores/condutores/`
+
+**Descrição:** Lista condutores com filtros e busca
+
+**Parâmetros de Query:**
+- `search`: Busca por nome ou matrícula
+- `categoria_cnh`: Filtrar por categoria (A, B, C, D, E, AD)
+- `ordering`: Ordenação (-data_criacao, data_validade_cnh)
+
+**Exemplo:** `GET /api/condutores/condutores/?categoria_cnh=B&search=João`
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "count": 10,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "usuario": {
+        "nome_completo": "João Silva Santos",
+        "email": "joao.silva@email.com",
+        "matricula": "202590125123",
+        "cpf": "12345678901",
+        "telefone": "85987654321",
+        "data_nascimento": "1990-05-15",
+        "sexo": "M",
+        "is_active": true,
+        "is_staff": false,
+        "is_superuser": false,
+        "groups": [4]
+      },
+      "categoria_cnh": "B",
+      "data_validade_cnh": "2026-05-01",
+      "data_emissao_cnh": "2021-05-01",
+      "data_criacao": "2025-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 🚗 10. Condutores - Criar
+
+**Endpoint:** `POST /api/condutores/condutores/`
+
+**Descrição:** Cria novo condutor vinculado a um usuário
+
+**Corpo da Requisição:**
+```json
+{
+  "matricula": "202590125123",
+  "categoria_cnh": "B",
+  "data_validade_cnh": "2026-05-01",
+  "data_emissao_cnh": "2021-05-01"
+}
+```
+
+**Resposta de Sucesso (201):**
+```json
+{
+  "success": true,
+  "status_code": 201,
+  "message": "Condutor criado com sucesso.",
+  "data": {
+    "usuario": {
+      "nome_completo": "João Silva Santos",
+      "email": "joao.silva@email.com",
+      "matricula": "202590125123",
+      "cpf": "12345678901",
+      "telefone": "85987654321",
+      "data_nascimento": "1990-05-15",
+      "sexo": "M",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [4]
+    },
+    "categoria_cnh": "B",
+    "data_validade_cnh": "2026-05-01",
+    "data_emissao_cnh": "2021-05-01",
+    "cnh_vencida": false,
+    "dias_para_vencimento": 365,
+    "data_criacao": "2025-01-15T10:30:00Z",
+    "data_atualizacao": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Resposta de Erro - Usuário Não é Condutor (400):**
+```json
+{
+  "success": false,
+  "status_code": 400,
+  "message": "Dados inválidos fornecidos.",
+  "errors": {
+    "matricula": "Usuário não pertence ao grupo CONDUTOR."
+  },
+  "details": null
+}
+```
+
+---
+
+### 🚗 11. Condutores - Ver Detalhes
+
+**Endpoint:** `GET /api/condutores/condutores/<matricula>/`
+
+**Descrição:** Visualiza detalhes completos do condutor
+
+**Exemplo:** `GET /api/condutores/condutores/202590125123/`
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Dados do condutor recuperados com sucesso.",
+  "data": {
+    "usuario": {
+      "nome_completo": "João Silva Santos",
+      "email": "joao.silva@email.com",
+      "matricula": "202590125123",
+      "cpf": "12345678901",
+      "telefone": "85987654321",
+      "data_nascimento": "1990-05-15",
+      "sexo": "M",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [4]
+    },
+    "categoria_cnh": "B",
+    "data_validade_cnh": "2026-05-01",
+    "data_emissao_cnh": "2021-05-01",
+    "cnh_vencida": false,
+    "dias_para_vencimento": 365,
+    "data_criacao": "2025-01-15T10:30:00Z",
+    "data_atualizacao": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 🚗 12. Condutores - Atualizar
+
+**Endpoint:** `PATCH /api/condutores/condutores/<matricula>/`
+
+**Descrição:** Atualiza dados do condutor
+
+**Exemplo:** `PATCH /api/condutores/condutores/202590125123/`
+
+**Corpo da Requisição:**
+```json
+{
+  "categoria_cnh": "AB",
+  "data_validade_cnh": "2027-01-01"
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Dados do condutor atualizados com sucesso.",
+  "data": {
+    "usuario": {
+      "nome_completo": "João Silva Santos",
+      "email": "joao.silva@email.com",
+      "matricula": "202590125123",
+      "cpf": "12345678901",
+      "telefone": "85987654321",
+      "data_nascimento": "1990-05-15",
+      "sexo": "M",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [4]
+    },
+    "categoria_cnh": "AB",
+    "data_validade_cnh": "2027-01-01",
+    "data_emissao_cnh": "2021-05-01",
+    "cnh_vencida": false,
+    "dias_para_vencimento": 730,
+    "data_criacao": "2025-01-15T10:30:00Z",
+    "data_atualizacao": "2025-01-15T15:45:00Z"
+  }
+}
+```
+
+---
+
+### ❌ Respostas de Erro Comuns
+
+**Token Inválido ou Ausente (401):**
+```json
+{
+  "detail": "Given token not valid for any token type",
+  "code": "token_not_valid",
+  "messages": [
+    {
+      "token_class": "AccessToken",
+      "token_type": "access",
+      "message": "Token is invalid or expired"
+    }
+  ]
+}
+```
+
+**Usuário Não Encontrado (404):**
+```json
+{
+  "success": false,
+  "status_code": 404,
+  "message": "Usuário não encontrado.",
+  "errors": {
+    "matricula": "Nenhum usuário encontrado com esta matrícula."
+  },
+  "details": "Verifique se a matrícula está correta."
+}
+```
+
+**Erro Interno do Servidor (500):**
+```json
+{
+  "success": false,
+  "status_code": 500,
+  "message": "Erro interno do servidor.",
+  "errors": {
+    "server": "Ocorreu um erro inesperado. Tente novamente."
+  },
+  "details": "Se o problema persistir, entre em contato com o suporte."
+}
+```
+
 ## 👥 Sistema de Grupos
 
 | Grupo                        | Descrição                           | Permissões                        |
