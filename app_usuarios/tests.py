@@ -26,6 +26,7 @@ class UsuarioCustomTests(TestCase):
         self.user_data = {
             'email': 'teste@exemplo.com',
             'nome_completo': 'Usuário Teste',
+            'data_nascimento': '2000-01-01',
             'cpf': '11111111111',
             'password': 'senha123'
         }
@@ -51,6 +52,7 @@ class UsuarioCustomTests(TestCase):
         admin = User.objects.create_superuser(
             email='admin@exemplo.com',
             nome_completo='Administrador',
+            data_nascimento='2000-01-01',
             password='admin123'
         )
         self.assertTrue(admin.is_superuser)
@@ -63,6 +65,7 @@ class UsuarioCustomTests(TestCase):
         outro_usuario = User.objects.create_user(
             email='outro@exemplo.com',
             nome_completo='Outro Usuário',
+            data_nascimento='2000-01-01',
             cpf='22222222222',
             password='senha456'
         )
@@ -76,6 +79,7 @@ class UsuarioCustomTests(TestCase):
             User.objects.create_user(
                 email=self.user_data['email'],
                 nome_completo='Outro',
+                data_nascimento='2000-01-01',
                 cpf='33333333333',
                 password='123'
             )
@@ -88,6 +92,7 @@ class UsuarioCustomTests(TestCase):
             User.objects.create_user(
                 email='novo@exemplo.com',
                 nome_completo='Outro',
+                data_nascimento='2000-01-01',
                 cpf=self.user_data['cpf'],
                 password='123'
             )
@@ -104,8 +109,8 @@ class UsuarioCustomTests(TestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
+        self.assertIn('access_token', response.data['data'])
+        self.assertIn('refresh_token', response.data['data'])
 
     def test_login_falha_matricula_invalida(self):
         """
