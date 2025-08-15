@@ -19,9 +19,9 @@ def gerar_identificador_unico():
 
 class VeiculoBase(models.Model):
     usuario = models.ForeignKey(
-        'app_usuarios.Usuario',
+        'app_usuarios.UsuarioCustom',
         on_delete=models.CASCADE,
-        related_name='veiculos',
+        related_name='%(class)s_veiculos',  # Usar nome da classe dinâmico
         verbose_name='Usuário'
     )
     identificador_unico_veiculo = models.CharField(
