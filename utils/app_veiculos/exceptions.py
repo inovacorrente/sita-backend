@@ -45,16 +45,6 @@ class VeiculoSuccessResponse(SuccessResponse):
         )
 
     @staticmethod
-    def veiculo_transferido(data):
-        """Resposta para transferência bem-sucedida de veículo."""
-        return {
-            'success': True,
-            'status_code': 200,
-            'message': "Veículo transferido com sucesso.",
-            'data': data
-        }
-
-    @staticmethod
     def veiculos_listados(data, count=None):
         """Resposta para listagem de veículos."""
         message = "Veículos listados com sucesso."
@@ -72,6 +62,19 @@ class VeiculoValidationErrorResponse(ValidationErrorResponse):
     Classe específica para respostas de erro de validação de veículos.
     Estende a classe base com mensagens contextualizadas.
     """
+
+    @staticmethod
+    def acesso_negado(mensagem="Acesso negado"):
+        """Resposta para acesso negado a veículo."""
+        return {
+            'success': False,
+            'status_code': 403,
+            'message': mensagem,
+            'errors': {
+                'permissao': "Você não tem permissão para acessar este recurso"
+            },
+            'details': mensagem
+        }
 
     @staticmethod
     def placa_invalida(placa_informada):
