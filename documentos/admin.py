@@ -13,4 +13,3 @@ class DocumentoAdmin(admin.ModelAdmin):  # noqa: D101
         'veiculo__identificador_unico_veiculo',
         'veiculo__usuario__matricula'
     )
-    )
