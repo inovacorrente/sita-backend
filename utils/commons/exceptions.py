@@ -1,3 +1,6 @@
+import os
+
+
 class SuccessResponse:
     """
     Classe utilitária para gerar respostas de sucesso padronizadas.
@@ -54,7 +57,9 @@ class SuccessResponse:
                 'access_token': data.get('access'),
                 'refresh_token': data.get('refresh'),
                 'token_type': 'Bearer',
-                'expires_in': 3600  # 1 hora em segundos
+                'expires_in': int(os.environ.get(
+                    'ACCESS_TOKEN_EXPIRES_IN', 3600
+                ))
             }
         }
 
