@@ -141,7 +141,7 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuarioCustom
         fields = [
-            'nome_completo', 'email', 'cpf', 'telefone', 'password',
+            'matricula','nome_completo', 'email', 'cpf', 'telefone', 'password',
             'password_confirm', 'data_nascimento', 'sexo', 'groups',
             'is_staff', 'is_superuser',
         ]
@@ -262,6 +262,39 @@ class UsuarioAtivarDesativarSerializer(serializers.Serializer):
     """
     Serializador para ativar ou desativar um usuário.
     """
+    matricula = serializers.CharField(required=True, allow_blank=True)
+    is_active = serializers.BooleanField(required=True)
+
+
+class LogoutSerializer(serializers.Serializer):
+    """
+    Serializador para logout (invalidação de refresh token).
+    """
+    refresh = serializers.CharField(
+        required=True,
+        help_text="Refresh token a ser invalidado"
+    )
+
+    def validate_refresh(self, value):
+        """
+        Valida se o refresh token foi fornecido.
+        """
+        if not value:
+            raise serializers.ValidationError(
+                "Refresh token é obrigatório."
+            )
+        return value
+
+
+class TokenRefreshResponseSerializer(serializers.Serializer):
+    """
+    Serializador para resposta do refresh token.
+    """
+    access_token = serializers.CharField(help_text="Novo access token")
+    token_type = serializers.CharField(help_text="Tipo do token (Bearer)")
+    expires_in = serializers.IntegerField(
+        help_text="Tempo de expiração em segundos"
+
     matricula = serializers.CharField(
         required=True,
         allow_blank=True,

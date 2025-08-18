@@ -7,11 +7,11 @@ from drf_spectacular.utils import (
     OpenApiExample
 )
 from rest_framework import mixins, status, viewsets
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import NotFound
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from utils.commons.exceptions import SuccessResponse
 
@@ -131,7 +131,7 @@ class CondutorViewSet(
     queryset = Condutor.objects.select_related('usuario').all()
     serializer_class = CondutorListSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [JWTAuthentication]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['categoria_cnh']
     search_fields = ['usuario__nome_completo', 'usuario__matricula']

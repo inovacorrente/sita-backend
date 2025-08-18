@@ -93,6 +93,146 @@ Para autenticação, usar sempre JWT tokens com refresh token.
 
 Headers obrigatórios: Authorization: Bearer <token> e Content-Type: application/json.
 
+## Validators e Exceptions em `utils/`
+
+Para evitar duplicidade e facilitar reuso, centralize validadores e exceções no diretório `utils/` do projeto.
+
+Estrutura recomendada:
+
+```
+utils/
+  commons/
+    exceptions.py    # Classes/utilitários de respostas e exceções comuns
+  app_usuarios/
+    validators.py    # Validadores específicos do app (se necessário)
+    exceptions.py    # Exceções/respostas específicas do app (se necessário)
+  app_condutores/
+    validators.py
+    exceptions.py
+  # ... outros apps, se houver validações específicas
+```
+
+Diretrizes para validadores (em `utils/app_{nome do app}/validators.py`):
+- Use funções puras com type hints e docstrings (Google Style) e mensagens claras.
+- Para models, levante `django.core.exceptions.ValidationError`.
+- Para serializers, pode-se usar `rest_framework.serializers.ValidationError`.
+- Mantenha nomes descritivos: `validate_cpf`, `validate_renavam`, `validate_vin`, `validate_placa_br`, etc.
+
+Exemplo (esqueleto) de validador compartilhado:
+
+```python
+from django.core.exceptions import ValidationError
+
+def normalize_alphanumeric_upper(value: str) -> str:
+    """Remove espaços nas extremidades e aplica uppercase."""
+    return value.strip().upper() if value is not None else value
+
+def validate_placa_br(value: str):
+    """Valida placa brasileira (padrão antigo e Mercosul)."""
+    if not value:
+        raise ValidationError("Placa não pode ser vazia")
+    v = normalize_alphanumeric_upper(value)
+    # aplique regex antigo/mercosul aqui; lance ValidationError em caso inválido
+```
+
+Diretrizes para exceções e respostas (em `utils/commons/exceptions.py`):
+- Concentre helpers de resposta de sucesso/erro padronizada (ex.: `SuccessResponse`, `ValidationErrorResponse`).
+- Para erros, prefira levantar exceções do Django/DRF; o handler customizado formatará a resposta.
+- Evite construir dicionários de erro manualmente nas views; use o handler e utilitários.
+
+Custom Exception Handler (já configurado):
+- O projeto usa `REST_FRAMEWORK['EXCEPTION_HANDLER'] = 'utils.commons.validators.custom_exception_handler'`.
+- Portanto, ao levantar `ValidationError`, `PermissionDenied`, `NotFound`, etc., as respostas serão padronizadas automaticamente.
+
+Padrões de importação (exemplos):
+
+```python
+# Em models
+from utils.app_veiculos.validators import validate_placa_br, validate_renavam, validate_vin
+
+# Em serializers
+from utils.app_veiculos.validators import normalize_alphanumeric_upper
+from rest_framework import serializers
+
+# Em views
+from utils.commons.exceptions import SuccessResponse, ValidationErrorResponse
+from rest_framework.exceptions import ValidationError
+```
+
+Uso em Model (campo com validator):
+
+```python
+class Veiculo(models.Model):
+    placa = models.CharField(
+        max_length=10,
+        unique=True,
+        validators=[validate_placa_br],
+        help_text="Placa brasileira (padrão antigo ou Mercosul)",
+    )
+    # ...
+    def clean(self):
+        super().clean()
+        self.placa = normalize_alphanumeric_upper(self.placa)
+```
+
+Uso em Serializer (validação de campo):
+
+```python
+class VeiculoSerializer(serializers.ModelSerializer):
+    def validate_placa(self, value: str) -> str:
+        value = normalize_alphanumeric_upper(value)
+        validate_placa_br(value)
+        return value
+```
+
+Uso em View (resposta padrão + exceção):
+
+```python
+class VeiculoViewSet(ModelViewSet):
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return Response(SuccessResponse.created(response.data), status=201)
+
+    def perform_create(self, serializer):
+        if some_invalid_condition:
+            # Será formatado pelo custom_exception_handler
+            raise ValidationError({"placa": "Placa inválida."})
+        serializer.save()
+```
+
+Boas práticas adicionais:
+- Evite importações cíclicas: mantenha validadores/exceções genéricos em `utils/commons`.
+- Validadores específicos de domínio de um app devem residir em uma pasta
+    dedicada no `utils/` do projeto, por exemplo:
+    - `utils/app_veiculos/validators.py` e `utils/app_veiculos/exceptions.py`
+    - `utils/app_usuarios/validators.py` e `utils/app_usuarios/exceptions.py`
+    - `utils/app_condutores/validators.py` e `utils/app_condutores/exceptions.py`
+    Use `utils/commons` para tudo que for compartilhado entre apps e `utils/app_<app>`
+    apenas para regras estritamente específicas daquele domínio.
+- Exemplo de estrutura para o app de veículos:
+
+```
+utils/
+    commons/
+        validators.py
+        exceptions.py
+    app_veiculos/
+        validators.py    # regras específicas (ex.: validações de categoria, regras municipais do app)
+        exceptions.py    # exceções/respostas específicas do domínio de veículos
+```
+
+- Exemplo de importação quando houver regra específica de app:
+
+```python
+# Compartilhados
+from utils.app_veiculos.validators import validate_vin
+
+# Específicos de veículos
+from utils.app_veiculos.validators import validate_restricao_categoria
+```
+
+- Sempre documente regras de negócio nas docstrings e use mensagens de validação em português, claras e objetivas.
+
 ## Testes
 
 Não precisa criar Testes para cada função, mas sempre incluir testes para modelos, serializers e views principais.

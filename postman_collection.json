@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "sita-backend-api",
 		"name": "SITA Backend API - Sistema STRANS",
-		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários com busca e filtros avançados\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Funcionalidades de Busca:**\n- Busca por matrícula, nome, email ou CPF\n- Filtros por status (ativo/inativo, staff, superuser)\n- Ordenação por diferentes campos\n- Paginação configurável\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR\n\n**URLs principais:**\n- Login: `/api/usuarios/login/`\n- Listar usuários: `/api/usuarios/listar/`\n- Criar usuário: `/api/usuarios/register/`\n- Meus dados: `/api/usuarios/me/`",
+		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários com busca e filtros avançados\n- Gestão completa de veículos (Táxis, Mototáxis, Transporte Municipal)\n- Gestão de condutores e informações de CNH\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Módulos disponíveis:**\n\n**🔐 Autenticação:**\n- Login com matrícula e senha\n- Tokens JWT com refresh automático\n\n**👤 Usuários:**\n- Informações próprias (visualizar/editar)\n- Gestão completa (CRUD) para administradores\n- Busca por matrícula, nome, email ou CPF\n- Filtros por status (ativo/inativo, staff, superuser)\n- Ordenação e paginação\n\n**🚗 Veículos:**\n- **Táxis:** Cadastro e gestão de veículos táxi\n- **Mototáxis:** Cadastro e gestão de motocicletas para mototáxi\n- **Transporte Municipal:** Gestão de ônibus e veículos de transporte público\n- Campos únicos: placa, RENAVAM, chassi\n- Identificador único gerado automaticamente\n- Filtros por usuário, placa, marca, modelo\n- Busca geral e paginação\n\n**🏃‍♂️ Condutores:**\n- Cadastro de informações de CNH\n- Categorias A, B, C, D, E e combinações\n- Controle de validade da CNH\n- Busca por categoria e dados do condutor\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR\n\n**URLs principais:**\n- Login: `/api/usuarios/login/`\n- Usuários: `/api/usuarios/`\n- Veículos: `/api/veiculos/`\n- Condutores: `/api/condutores/`\n\n**Validações implementadas:**\n- CPF brasileiro (11 dígitos)\n- Placa brasileira (formato antigo e Mercosul)\n- RENAVAM (11 dígitos)\n- Chassi (17 caracteres)\n- Telefone brasileiro\n- Datas de CNH (emissão e validade)\n\n**Funcionalidades de Segurança:**\n- Autenticação JWT obrigatória\n- Permissões baseadas em grupos\n- Usuários não-administradores veem apenas seus próprios dados\n- Validações de integridade de dados",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "sita-backend"
 	},
@@ -550,7 +550,1048 @@
 			"description": "Endpoints para gestão completa de usuários (CRUD + funcionalidades específicas)."
 		},
 		{
-			"name": "📊 Utilitários e Informações",
+			"name": "� Gestão de Veículos",
+			"item": [
+				{
+					"name": "🚕 Táxis",
+					"item": [
+						{
+							"name": "Listar Táxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/?page=1&page_size=10&search=&matricula=&placa=&marca=&modelo=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Número da página"
+										},
+										{
+											"key": "page_size",
+											"value": "10",
+											"description": "Itens por página"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"description": "Busca geral por placa, marca, modelo, cor, nome do usuário ou identificador"
+										},
+										{
+											"key": "matricula",
+											"value": "",
+											"description": "Filtrar por matrícula do usuário (apenas admins)"
+										},
+										{
+											"key": "placa",
+											"value": "",
+											"description": "Filtrar por placa"
+										},
+										{
+											"key": "marca",
+											"value": "",
+											"description": "Filtrar por marca"
+										},
+										{
+											"key": "modelo",
+											"value": "",
+											"description": "Filtrar por modelo"
+										}
+									]
+								},
+								"description": "Lista todos os táxis cadastrados no sistema.\n\n**Autenticação:** Obrigatória\n**Permissões:** Usuários autenticados (não-admins veem apenas seus veículos)\n\n**Filtros disponíveis:**\n- Busca geral por múltiplos campos\n- Filtros específicos por matrícula, placa, marca, modelo\n- Paginação configurável"
+							}
+						},
+						{
+							"name": "Criar Táxi",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1234\",\n    \"renavam\": \"12345678901\",\n    \"chassi\": \"1HGBH41JXMN109186\",\n    \"marca\": \"Toyota\",\n    \"modelo\": \"Corolla\",\n    \"cor\": \"Branco\",\n    \"anoFabricacao\": 2020,\n    \"anoLimiteFabricacao\": 2021\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										""
+									]
+								},
+								"description": "Cadastra um novo táxi no sistema.\n\n**Campos obrigatórios:**\n- matricula_usuario: Matrícula do usuário proprietário\n- placa: Placa brasileira (AAA-9999 ou AAA9A99)\n- renavam: RENAVAM (11 dígitos)\n- chassi: Chassi (17 caracteres)\n- marca, modelo, cor\n- anoFabricacao, anoLimiteFabricacao\n\n**Validações:**\n- Placa deve ser única e formato brasileiro\n- RENAVAM deve ter 11 dígitos\n- Chassi deve ter 17 caracteres\n- Anos devem ser consistentes"
+							}
+						},
+						{
+							"name": "Obter Táxi por ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/ABCD1234/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										"ABCD1234",
+										""
+									]
+								},
+								"description": "Obtém detalhes de um táxi específico pelo identificador único.\n\n**Parâmetro:** identificador_unico_veiculo (gerado automaticamente)"
+							}
+						},
+						{
+							"name": "Atualizar Táxi",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1234\",\n    \"renavam\": \"12345678901\",\n    \"chassi\": \"1HGBH41JXMN109186\",\n    \"marca\": \"Toyota\",\n    \"modelo\": \"Corolla GLi\",\n    \"cor\": \"Prata\",\n    \"anoFabricacao\": 2020,\n    \"anoLimiteFabricacao\": 2021\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/ABCD1234/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										"ABCD1234",
+										""
+									]
+								},
+								"description": "Atualiza informações de um táxi existente."
+							}
+						},
+						{
+							"name": "Excluir Táxi",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/ABCD1234/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										"ABCD1234",
+										""
+									]
+								},
+								"description": "Remove um táxi do sistema."
+							}
+						},
+						{
+							"name": "Meus Táxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/meus_veiculos/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										"meus_veiculos",
+										""
+									]
+								},
+								"description": "Retorna apenas os táxis do usuário logado."
+							}
+						},
+						{
+							"name": "Resumo de Táxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/taxis/resumo/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"taxis",
+										"resumo",
+										""
+									]
+								},
+								"description": "Retorna lista resumida de táxis para melhor performance.\n\n**Campos retornados:**\n- Identificador único\n- Placa\n- Marca e modelo\n- Nome do proprietário\n\nÚtil para dropdowns e listagens rápidas."
+							}
+						}
+					]
+				},
+				{
+					"name": "🏍️ Mototáxis",
+					"item": [
+						{
+							"name": "Listar Mototáxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/?page=1&page_size=10&search=&matricula=&placa=&marca=&modelo=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										},
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "matricula",
+											"value": ""
+										},
+										{
+											"key": "placa",
+											"value": ""
+										},
+										{
+											"key": "marca",
+											"value": ""
+										},
+										{
+											"key": "modelo",
+											"value": ""
+										}
+									]
+								},
+								"description": "Lista todos os mototáxis cadastrados no sistema."
+							}
+						},
+						{
+							"name": "Criar Mototáxi",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1235\",\n    \"renavam\": \"12345678902\",\n    \"chassi\": \"1HGBH41JXMN109187\",\n    \"marca\": \"Honda\",\n    \"modelo\": \"CG 160\",\n    \"cor\": \"Vermelho\",\n    \"anoFabricacao\": 2022,\n    \"anoLimiteFabricacao\": 2023\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										""
+									]
+								},
+								"description": "Cadastra um novo mototáxi no sistema."
+							}
+						},
+						{
+							"name": "Obter Mototáxi por ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/EFGH5678/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										"EFGH5678",
+										""
+									]
+								},
+								"description": "Obtém detalhes de um mototáxi específico."
+							}
+						},
+						{
+							"name": "Atualizar Mototáxi",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1235\",\n    \"renavam\": \"12345678902\",\n    \"chassi\": \"1HGBH41JXMN109187\",\n    \"marca\": \"Honda\",\n    \"modelo\": \"CG 160 Fan\",\n    \"cor\": \"Azul\",\n    \"anoFabricacao\": 2022,\n    \"anoLimiteFabricacao\": 2023\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/EFGH5678/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										"EFGH5678",
+										""
+									]
+								},
+								"description": "Atualiza informações de um mototáxi existente."
+							}
+						},
+						{
+							"name": "Excluir Mototáxi",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/EFGH5678/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										"EFGH5678",
+										""
+									]
+								},
+								"description": "Remove um mototáxi do sistema."
+							}
+						},
+						{
+							"name": "Meus Mototáxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/meus_veiculos/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										"meus_veiculos",
+										""
+									]
+								},
+								"description": "Retorna apenas os mototáxis do usuário logado."
+							}
+						},
+						{
+							"name": "Resumo de Mototáxis",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/mototaxis/resumo/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"mototaxis",
+										"resumo",
+										""
+									]
+								},
+								"description": "Retorna lista resumida de mototáxis para melhor performance."
+							}
+						}
+					]
+				},
+				{
+					"name": "🚌 Transporte Municipal",
+					"item": [
+						{
+							"name": "Listar Transportes",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/?page=1&page_size=10&search=&matricula=&placa=&marca=&modelo=&linha=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										},
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "matricula",
+											"value": ""
+										},
+										{
+											"key": "placa",
+											"value": ""
+										},
+										{
+											"key": "marca",
+											"value": ""
+										},
+										{
+											"key": "modelo",
+											"value": ""
+										},
+										{
+											"key": "linha",
+											"value": "",
+											"description": "Filtrar por linha/rota específica"
+										}
+									]
+								},
+								"description": "Lista todos os veículos de transporte municipal."
+							}
+						},
+						{
+							"name": "Criar Transporte Municipal",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1236\",\n    \"renavam\": \"12345678903\",\n    \"chassi\": \"1HGBH41JXMN109188\",\n    \"marca\": \"Mercedes-Benz\",\n    \"modelo\": \"OF-1721\",\n    \"cor\": \"Azul e Branco\",\n    \"anoFabricacao\": 2021,\n    \"anoLimiteFabricacao\": 2022,\n    \"linha\": \"Centro - Aeroporto\",\n    \"capacidade\": 80\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										""
+									]
+								},
+								"description": "Cadastra um novo veículo de transporte municipal.\n\n**Campos específicos:**\n- linha: Identificação da linha/rota\n- capacidade: Número máximo de passageiros"
+							}
+						},
+						{
+							"name": "Obter Transporte por ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/IJKL9012/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"IJKL9012",
+										""
+									]
+								},
+								"description": "Obtém detalhes de um veículo de transporte municipal específico."
+							}
+						},
+						{
+							"name": "Atualizar Transporte Municipal",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"matricula_usuario\": \"400000000001\",\n    \"placa\": \"ABC1236\",\n    \"renavam\": \"12345678903\",\n    \"chassi\": \"1HGBH41JXMN109188\",\n    \"marca\": \"Mercedes-Benz\",\n    \"modelo\": \"OF-1721 BlueTec\",\n    \"cor\": \"Azul e Branco\",\n    \"anoFabricacao\": 2021,\n    \"anoLimiteFabricacao\": 2022,\n    \"linha\": \"Centro - Aeroporto - Via Shopping\",\n    \"capacidade\": 85\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/IJKL9012/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"IJKL9012",
+										""
+									]
+								},
+								"description": "Atualiza informações de um veículo de transporte municipal."
+							}
+						},
+						{
+							"name": "Excluir Transporte Municipal",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/IJKL9012/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"IJKL9012",
+										""
+									]
+								},
+								"description": "Remove um veículo de transporte municipal do sistema."
+							}
+						},
+						{
+							"name": "Meus Transportes",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/meus_veiculos/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"meus_veiculos",
+										""
+									]
+								},
+								"description": "Retorna apenas os veículos de transporte municipal do usuário logado."
+							}
+						},
+						{
+							"name": "Resumo de Transportes",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/resumo/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"resumo",
+										""
+									]
+								},
+								"description": "Retorna lista resumida de veículos de transporte municipal."
+							}
+						},
+						{
+							"name": "Veículos por Linha",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/veiculos/transporte-municipal/por_linha/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"veiculos",
+										"transporte-municipal",
+										"por_linha",
+										""
+									]
+								},
+								"description": "Lista veículos de transporte municipal agrupados por linha/rota.\n\n**Resposta agrupada:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"linhas\": {\n      \"Centro - Aeroporto\": [\n        {\"identificador\": \"ABC123\", \"placa\": \"ABC1234\", ...}\n      ],\n      \"Shopping - Praia\": [\n        {\"identificador\": \"DEF456\", \"placa\": \"DEF5678\", ...}\n      ]\n    },\n    \"total_linhas\": 2,\n    \"total_veiculos\": 15\n  }\n}\n```\n\nÚtil para relatórios e gestão de frotas por linha."
+							}
+						}
+					]
+				}
+			],
+			"description": "Endpoints para gestão completa de veículos (Táxis, Mototáxis e Transporte Municipal)."
+		},
+		{
+			"name": "🏃‍♂️ Gestão de Condutores",
+			"item": [
+				{
+					"name": "Listar Condutores",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/?page=1&page_size=10&search=&categoria_cnh=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página"
+								},
+								{
+									"key": "page_size",
+									"value": "10",
+									"description": "Itens por página"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Busca por nome do usuário, matrícula ou categoria CNH"
+								},
+								{
+									"key": "categoria_cnh",
+									"value": "",
+									"description": "Filtrar por categoria da CNH (A, B, C, D, E, AD, etc.)"
+								}
+							]
+						},
+						"description": "Lista todos os condutores cadastrados no sistema.\n\n**Autenticação:** Obrigatória\n**Permissões:** Usuários autenticados\n\n**Filtros disponíveis:**\n- Busca por nome, matrícula ou categoria CNH\n- Filtro por categoria específica da CNH\n- Paginação configurável"
+					}
+				},
+				{
+					"name": "Criar Condutor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"usuario\": \"400000000001\",\n    \"categoria_cnh\": \"AB\",\n    \"data_validade_cnh\": \"2026-12-31\",\n    \"data_emissao_cnh\": \"2021-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								""
+							]
+						},
+						"description": "Cadastra um novo condutor no sistema.\n\n**Campos obrigatórios:**\n- usuario: Matrícula do usuário (deve existir e ser único)\n- categoria_cnh: Categoria da CNH (A, B, C, D, E, AD, etc.)\n- data_validade_cnh: Data de validade da CNH\n- data_emissao_cnh: Data de emissão da CNH\n\n**Validações:**\n- Usuário deve existir e estar ativo\n- Um usuário pode ter apenas um registro de condutor\n- Data de validade deve ser futura\n- Data de emissão deve ser anterior à validade"
+					}
+				},
+				{
+					"name": "Obter Condutor por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								"1",
+								""
+							]
+						},
+						"description": "Obtém informações detalhadas de um condutor específico.\n\n**Parâmetro:** ID do condutor"
+					}
+				},
+				{
+					"name": "Atualizar Condutor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"usuario\": \"400000000001\",\n    \"categoria_cnh\": \"ABC\",\n    \"data_validade_cnh\": \"2027-12-31\",\n    \"data_emissao_cnh\": \"2021-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								"1",
+								""
+							]
+						},
+						"description": "Atualiza informações de um condutor existente.\n\n**Campos editáveis:**\n- categoria_cnh: Pode ser atualizada (renovação/upgrade)\n- data_validade_cnh: Para renovações\n- data_emissao_cnh: Se necessário corrigir"
+					}
+				},
+				{
+					"name": "Excluir Condutor",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								"1",
+								""
+							]
+						},
+						"description": "Remove um condutor do sistema.\n\n**Atenção:** Esta operação remove permanentemente o registro de condutor."
+					}
+				},
+				{
+					"name": "🔍 Buscar por Categoria CNH",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/?categoria_cnh=AB",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								""
+							],
+							"query": [
+								{
+									"key": "categoria_cnh",
+									"value": "AB",
+									"description": "Filtrar condutores com categoria AB"
+								}
+							]
+						},
+						"description": "Busca condutores por categoria específica da CNH.\n\n**Exemplos de categorias:**\n- A: Motocicletas\n- B: Automóveis\n- C: Veículos de carga\n- D: Transporte de passageiros\n- E: Articulados/reboque\n- AB, AD: Combinações"
+					}
+				},
+				{
+					"name": "🔍 Buscar Condutor",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/condutores/condutores/?search=João",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"condutores",
+								"condutores",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "João",
+									"description": "Busca por nome do usuário associado"
+								}
+							]
+						},
+						"description": "Busca condutores por nome do usuário associado.\n\n**A busca inclui:**\n- Nome completo do usuário\n- Matrícula do usuário\n- Categoria da CNH"
+					}
+				}
+			],
+			"description": "Endpoints para gestão completa de condutores e informações de CNH."
+		},
+		{
+			"name": "�📊 Utilitários e Informações",
 			"item": [
 				{
 					"name": "Schema da API",

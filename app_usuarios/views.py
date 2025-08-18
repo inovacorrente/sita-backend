@@ -1,9 +1,19 @@
+
 import logging
+import os
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import (TokenObtainPairView,
+                                            TokenRefreshView)
+
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import (
     extend_schema,
@@ -12,6 +22,7 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse
 )
+
 
 from utils.app_usuarios.exceptions import ValidationErrorResponse
 from utils.commons.exceptions import SuccessResponse
@@ -23,12 +34,19 @@ from utils.permissions.base import (
 )
 
 from .models import UsuarioCustom
+
+from .serializers import (CustomTokenObtainPairSerializer, LogoutSerializer,
+                          UsuarioAtivarDesativarSerializer,
+                          UsuarioCustomCreateSerializer,
+                          UsuarioCustomViewSerializer, UsuarioMeSerializer)
+
 from .serializers import (
     CustomTokenObtainPairSerializer,
     UsuarioCustomCreateSerializer,
     UsuarioCustomViewSerializer,
     UsuarioMeSerializer
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +94,87 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         return response
 
 
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    View para renovar token JWT.
+    """
+
+    def post(self, request, *args, **kwargs):
+        """
+        Sobrescreve o método post para retornar resposta padronizada
+        """
+        try:
+            response = super().post(request, *args, **kwargs)
+
+            if response.status_code == 200:
+                success_data = SuccessResponse.retrieved(
+                    {
+                        'access_token': response.data.get('access'),
+                        'token_type': 'Bearer',
+                        'expires_in': int(os.environ.get(
+                            'ACCESS_TOKEN_EXPIRES_IN', 3600
+                        ))
+                    },
+                    "Token renovado com sucesso."
+                )
+                return Response(success_data, status=status.HTTP_200_OK)
+
+            return response
+
+        except TokenError as e:
+            logger.warning(f"Erro ao renovar token: {str(e)}")
+            error_response = format_error_response(
+                "Token de refresh inválido ou expirado.", 401
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+
+class LogoutView(GenericAPIView):
+    """
+    View para logout (invalidar refresh token).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = LogoutSerializer
+
+    def post(self, request):
+        """
+        Invalida o refresh token para fazer logout.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            refresh_token = serializer.validated_data['refresh']
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            logger.info(
+                f"Usuário {request.user.matricula} fez logout"
+            )
+
+            success_data = SuccessResponse.deleted(
+                "Logout realizado com sucesso."
+            )
+            return Response(success_data, status=status.HTTP_200_OK)
+
+        except TokenError as e:
+            logger.warning(
+                f"Erro ao fazer logout para usuário "
+                f"{request.user.matricula}: {str(e)}"
+            )
+            error_response = format_error_response(
+                "Token inválido.", 400
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 # ============================================================================
 # CRUD DE USUÁRIOS
 # ============================================================================
@@ -118,7 +217,7 @@ class UsuarioCustomListView(generics.ListAPIView):
 class UsuarioCustomCreateView(generics.CreateAPIView):
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomCreateSerializer
-    permission_classes = [IsAdminToCreateAdmin]
+    permission_classes = [IsAdminToCreateAdmin, DjangoModelPermissionsWithView]
 
 
 @extend_schema_view(
@@ -137,7 +236,8 @@ class UsuarioCustomCreateView(generics.CreateAPIView):
 class UsuarioCustomDetailView(generics.RetrieveAPIView):
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomViewSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated,
+                          DjangoModelPermissionsWithView]
     lookup_field = 'matricula'
 
     def get_object(self):
@@ -229,6 +329,15 @@ class UsuarioMeView(APIView):
         return self.put(request)
 
 
+
+class UsuarioAtivarDesativarView(GenericAPIView):
+    """
+    View para ativar/desativar usuários.
+    - Admins podem ativar/desativar qualquer usuário
+    - Usuários comuns só podem alterar seu próprio status
+    - Alterna automaticamente o status is_active (toggle)
+    """
+
 @extend_schema(
     tags=["Usuários"],
     summary="Ativar/Desativar usuário",
@@ -242,9 +351,22 @@ class UsuarioMeView(APIView):
     }
 )
 class UsuarioAtivarDesativarView(APIView):
+
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UsuarioAtivarDesativarSerializer
 
     def patch(self, request, matricula, *args, **kwargs):
+
+        data = {"matricula": matricula}
+        data.update(request.data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        """
+        Alterna o status is_active do usuário
+        (ativa se inativo, desativa se ativo).
+        """
+        # Validar se matrícula foi fornecida
+
         if not matricula:
             error_response = ValidationErrorResponse.required_field('matricula')
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)

@@ -38,6 +38,7 @@ class Condutor(models.Model):
     )
 
     class Meta:
+        app_label = 'app_condutores'
         verbose_name = 'condutor'
         verbose_name_plural = 'condutores'
 
