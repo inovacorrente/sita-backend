@@ -6,20 +6,32 @@ from rest_framework import serializers
 
 from app_usuarios.models import UsuarioCustom
 from app_usuarios.serializers import UsuarioCustomViewSerializer
-from utils.app_condutores.validators import (validar_categoria_cnh,
-                                             validar_condutor_update,
-                                             validar_consistencia_datas_cnh,
-                                             validar_data_emissao_cnh,
-                                             validar_data_validade_cnh,
-                                             validar_matricula_usuario)
+from utils.app_condutores.validators import (
+    validar_categoria_cnh,
+    validar_condutor_update,
+    validar_consistencia_datas_cnh,
+    validar_data_emissao_cnh,
+    validar_data_validade_cnh,
+    validar_matricula_usuario
+)
 
 from .models import Condutor
 
 
 class CondutorCreateSerializer(serializers.ModelSerializer):
     """
-    Serializer para criação de condutores.
-    Utiliza matrícula do usuário existente via OneToOneField.
+    Serializador para **criação** de condutores.
+
+    Este serializer:
+    - Recebe a matrícula de um usuário já existente (OneToOneField).
+    - Valida se o usuário pertence ao grupo **CONDUTOR**.
+    - Cria o registro de condutor associado.
+
+    Campos:
+        - matricula (str, obrigatório): Matrícula do usuário já existente.
+        - categoria_cnh (str, obrigatório): Categoria da CNH (A, B, C, D, E, AD).
+        - data_validade_cnh (date, obrigatório): Data de validade da CNH.
+        - data_emissao_cnh (date, obrigatório): Data de emissão da CNH.
     """
     matricula = serializers.CharField(max_length=50, write_only=True)
 
@@ -36,53 +48,78 @@ class CondutorCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate_categoria_cnh(self, value):
-        """Valida se a categoria da CNH é válida."""
+        """
+        Valida se a categoria da CNH é válida.
+        """
         return validar_categoria_cnh(value)
 
     def validate_data_emissao_cnh(self, value):
-        """Valida se a data de emissão da CNH não é futura."""
+        """
+        Valida se a data de emissão da CNH não está no futuro.
+        """
         return validar_data_emissao_cnh(value)
 
     def validate_data_validade_cnh(self, value):
-        """Valida se a CNH não está vencida."""
+        """
+        Valida se a CNH não está vencida.
+        """
         return validar_data_validade_cnh(value)
 
     def validate(self, attrs):
-        """Validações que envolvem múltiplos campos."""
-        data_emissao = attrs.get('data_emissao_cnh')
-        data_validade = attrs.get('data_validade_cnh')
-        validar_consistencia_datas_cnh(data_emissao, data_validade)
+        """
+        Validações cruzadas envolvendo emissão e validade.
+        """
+        validar_consistencia_datas_cnh(
+            attrs.get('data_emissao_cnh'),
+            attrs.get('data_validade_cnh')
+        )
         return attrs
 
     def validate_matricula(self, value):
-        """Valida se o usuário existe e não é já um condutor."""
+        """
+        Valida se a matrícula pertence a um usuário existente
+        que ainda não possui condutor associado.
+        """
         return validar_matricula_usuario(value)
 
     def create(self, validated_data):
-        """Cria o condutor associado ao usuário existente."""
+        """
+        Cria o condutor vinculado ao usuário informado.
+
+        Passos:
+            1. Busca o usuário pela matrícula.
+            2. Valida se ele pertence ao grupo CONDUTOR.
+            3. Cria e retorna o condutor.
+
+        Raises:
+            serializers.ValidationError: Caso o grupo CONDUTOR não exista
+            ou o usuário não pertença a ele.
+        """
         matricula = validated_data.pop('matricula')
         usuario = UsuarioCustom.objects.get(matricula=matricula)
 
-        # Só permite criar condutor se o usuário já estiver no grupo CONDUTOR
+        # Verifica se o grupo CONDUTOR existe
         try:
             grupo_condutor = Group.objects.get(name='CONDUTOR')
         except Group.DoesNotExist:
             raise serializers.ValidationError(
-                {"matricula": "Grupo CONDUTOR não existe no sistema."})
+                {"matricula": "Grupo CONDUTOR não existe no sistema."}
+            )
 
+        # Verifica se o usuário pertence ao grupo
         if not usuario.groups.filter(id=grupo_condutor.id).exists():
             raise serializers.ValidationError(
-                {"matricula": "Usuário não pertence ao grupo CONDUTOR."})
+                {"matricula": "Usuário não pertence ao grupo CONDUTOR."}
+            )
 
-        # Cria o condutor
-        condutor = Condutor.objects.create(usuario=usuario, **validated_data)
-        return condutor
+        return Condutor.objects.create(usuario=usuario, **validated_data)
 
 
 class CondutorListSerializer(serializers.ModelSerializer):
     """
-    Serializer para listagem de condutores.
-    Inclui informações básicas do usuário associado.
+    Serializador para listagem de condutores.
+
+    Inclui informações básicas do usuário associado (via UsuarioCustomViewSerializer).
     """
     usuario = UsuarioCustomViewSerializer(read_only=True)
 
@@ -96,8 +133,11 @@ class CondutorListSerializer(serializers.ModelSerializer):
 
 class CondutorDetailSerializer(serializers.ModelSerializer):
     """
-    Serializer para detalhes completos de um condutor.
-    Inclui todas as informações do usuário e condutor.
+    Serializador para visualização detalhada de um condutor.
+
+    Além das informações do condutor e do usuário, adiciona:
+        - cnh_vencida (bool): Se a CNH já está vencida.
+        - dias_para_vencimento (int): Dias restantes para vencer.
     """
     usuario = UsuarioCustomViewSerializer(read_only=True)
     cnh_vencida = serializers.SerializerMethodField()
@@ -113,20 +153,27 @@ class CondutorDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_cnh_vencida(self, obj) -> bool:
-        """Retorna se a CNH está vencida."""
+        """
+        Retorna True se a data de validade da CNH já passou.
+        """
         return obj.data_validade_cnh < date.today()
 
     @extend_schema_field(serializers.IntegerField)
     def get_dias_para_vencimento(self, obj) -> int:
-        """Retorna quantos dias faltam para a CNH vencer."""
-        diferenca = obj.data_validade_cnh - date.today()
-        return diferenca.days
+        """
+        Retorna quantos dias faltam para a CNH vencer.
+        """
+        return (obj.data_validade_cnh - date.today()).days
 
 
 class CondutorUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer para atualização de dados do condutor.
-    Permite atualizar apenas dados específicos do condutor, não do usuário.
+    Serializador para atualização de dados do condutor.
+
+    Permite atualizar apenas:
+        - categoria_cnh
+        - data_validade_cnh
+        - data_emissao_cnh
     """
     categoria_cnh = serializers.CharField(max_length=4)
     data_validade_cnh = serializers.DateField()
@@ -137,17 +184,25 @@ class CondutorUpdateSerializer(serializers.ModelSerializer):
         fields = ['categoria_cnh', 'data_validade_cnh', 'data_emissao_cnh']
 
     def validate_categoria_cnh(self, value):
-        """Valida se a categoria da CNH é válida."""
+        """
+        Valida se a categoria da CNH é válida.
+        """
         return validar_categoria_cnh(value)
 
     def validate_data_emissao_cnh(self, value):
-        """Valida se a data de emissão da CNH não é futura."""
+        """
+        Valida se a data de emissão da CNH não está no futuro.
+        """
         return validar_data_emissao_cnh(value)
 
     def validate_data_validade_cnh(self, value):
-        """Valida se a CNH não está vencida."""
+        """
+        Valida se a CNH não está vencida.
+        """
         return validar_data_validade_cnh(value)
 
     def validate(self, attrs):
-        """Validações que envolvem múltiplos campos."""
+        """
+        Validações cruzadas e regras específicas para atualização de condutores.
+        """
         return validar_condutor_update(self.instance, attrs)

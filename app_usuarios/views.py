@@ -8,49 +8,89 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (TokenObtainPairView,
                                             TokenRefreshView)
 
+from rest_framework_simplejwt.views import TokenObtainPairView
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter,
+    OpenApiExample,
+    OpenApiResponse
+)
+
+
 from utils.app_usuarios.exceptions import ValidationErrorResponse
 from utils.commons.exceptions import SuccessResponse
 from utils.commons.validators import format_error_response
-from utils.permissions.base import (DjangoModelPermissionsWithView,
-                                    IsAdminToCreateAdmin,
-                                    IsSelfOrHasModelPermission)
+from utils.permissions.base import (
+    DjangoModelPermissionsWithView,
+    IsAdminToCreateAdmin,
+    IsSelfOrHasModelPermission
+)
 
 from .models import UsuarioCustom
+
 from .serializers import (CustomTokenObtainPairSerializer, LogoutSerializer,
                           UsuarioAtivarDesativarSerializer,
                           UsuarioCustomCreateSerializer,
                           UsuarioCustomViewSerializer, UsuarioMeSerializer)
 
-logger = logging.getLogger(__name__)
+from .serializers import (
+    CustomTokenObtainPairSerializer,
+    UsuarioCustomCreateSerializer,
+    UsuarioCustomViewSerializer,
+    UsuarioMeSerializer
+)
 
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # AUTENTICAÇÃO
 # ============================================================================
 
+@extend_schema(
+    tags=["Autenticação"],
+    summary="Autenticar usuário via JWT",
+    description=(
+        "Autentica o usuário usando matrícula e senha. "
+        "Retorna tokens de acesso e refresh em caso de sucesso."
+    ),
+    request=CustomTokenObtainPairSerializer,
+    responses={
+        200: OpenApiResponse(description="Autenticação bem-sucedida"),
+        401: OpenApiResponse(description="Credenciais inválidas"),
+    },
+    examples=[
+        OpenApiExample(
+            "Exemplo de requisição",
+            value={"matricula": "20230001", "password": "senha123"},
+            request_only=True
+        ),
+        OpenApiExample(
+            "Exemplo de resposta",
+            value={
+                "access": "jwt_token_aqui",
+                "refresh": "jwt_refresh_token_aqui",
+                "mensagem": "Login realizado com sucesso"
+            },
+            response_only=True
+        ),
+    ]
+)
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """
-    View para autenticação JWT usando matrícula ao invés de username.
-    """
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        """
-        Sobrescreve o método post para retornar resposta padronizada
-        """
         response = super().post(request, *args, **kwargs)
-
         if response.status_code == 200:
-            # Sucesso na autenticação
             success_data = SuccessResponse.login_success(response.data)
             return Response(success_data, status=status.HTTP_200_OK)
-
-        # Em caso de erro, o manipulador de exceções já trata
         return response
 
 
@@ -139,37 +179,61 @@ class LogoutView(GenericAPIView):
 # CRUD DE USUÁRIOS
 # ============================================================================
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Usuários"],
+        summary="Listar usuários",
+        description="Lista todos os usuários cadastrados. Requer autenticação e permissão.",
+        parameters=[
+            OpenApiParameter("search", str, description="Busca por matrícula, nome, email ou CPF"),
+            OpenApiParameter("is_active", bool, description="Filtrar por status ativo"),
+            OpenApiParameter("is_staff", bool, description="Filtrar por admin staff"),
+            OpenApiParameter("is_superuser", bool, description="Filtrar por superusuário"),
+        ],
+        responses={200: UsuarioCustomViewSerializer(many=True)}
+    )
+)
 class UsuarioCustomListView(generics.ListAPIView):
-    """
-    View para listar todos os usuários.
-    Requer autenticação.
-    Suporta busca por matrícula, nome, email e CPF.
-    """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomViewSerializer
-    permission_classes = [permissions.IsAuthenticated,
-                          DjangoModelPermissionsWithView]
+    permission_classes = [permissions.IsAuthenticated, DjangoModelPermissionsWithView]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['matricula', 'nome_completo', 'email', 'cpf']
     filterset_fields = ['is_active', 'is_staff', 'is_superuser']
 
 
+@extend_schema_view(
+    post=extend_schema(
+        tags=["Usuários"],
+        summary="Criar novo usuário",
+        description="Cria um novo usuário. Apenas administradores podem criar outros administradores.",
+        request=UsuarioCustomCreateSerializer,
+        responses={
+            201: UsuarioCustomViewSerializer,
+            400: OpenApiResponse(description="Erro de validação"),
+        }
+    )
+)
 class UsuarioCustomCreateView(generics.CreateAPIView):
-    """
-    View para criar novos usuários.
-    Apenas admins podem criar outros admins.
-    """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomCreateSerializer
     permission_classes = [IsAdminToCreateAdmin, DjangoModelPermissionsWithView]
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Usuários"],
+        summary="Detalhar usuário",
+        description="Retorna os detalhes de um usuário específico pela matrícula. "
+                    "Usuário comum só pode acessar seus próprios dados.",
+        responses={
+            200: UsuarioCustomViewSerializer,
+            403: OpenApiResponse(description="Sem permissão"),
+            404: OpenApiResponse(description="Usuário não encontrado"),
+        }
+    )
+)
 class UsuarioCustomDetailView(generics.RetrieveAPIView):
-    """
-    View para exibir detalhes de um usuário específico.
-    - Admins podem ver qualquer usuário
-    - Usuários comuns só podem ver seus próprios dados
-    """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomViewSerializer
     permission_classes = [permissions.IsAuthenticated,
@@ -177,26 +241,29 @@ class UsuarioCustomDetailView(generics.RetrieveAPIView):
     lookup_field = 'matricula'
 
     def get_object(self):
-        """
-        Retorna o objeto usuário, aplicando regras de permissão.
-        """
         obj = super().get_object()
-
-        # Se não for admin, só pode ver os próprios dados
         if not self.request.user.is_staff and obj != self.request.user:
-            raise PermissionDenied(
-                "Você não tem permissão para ver estes dados."
-            )
-
+            raise PermissionDenied("Você não tem permissão para ver estes dados.")
         return obj
 
 
+@extend_schema_view(
+    put=extend_schema(
+        tags=["Usuários"],
+        summary="Atualizar usuário",
+        description="Atualiza os dados de um usuário pela matrícula.",
+        request=UsuarioCustomCreateSerializer,
+        responses={200: UsuarioCustomViewSerializer}
+    ),
+    patch=extend_schema(
+        tags=["Usuários"],
+        summary="Atualização parcial de usuário",
+        description="Atualiza parcialmente os dados de um usuário pela matrícula.",
+        request=UsuarioCustomCreateSerializer,
+        responses={200: UsuarioCustomViewSerializer}
+    )
+)
 class UsuarioCustomUpdateView(generics.UpdateAPIView):
-    """
-    View para atualizar dados de usuários.
-    - Admins podem editar qualquer usuário
-    - Usuários comuns só podem editar seus próprios dados
-    """
     queryset = UsuarioCustom.objects.all()
     serializer_class = UsuarioCustomCreateSerializer
     permission_classes = [
@@ -210,19 +277,17 @@ class UsuarioCustomUpdateView(generics.UpdateAPIView):
 # FUNCIONALIDADES ESPECÍFICAS
 # ============================================================================
 
+@extend_schema(tags=["Usuários"], methods=["GET", "PUT", "PATCH"])
 class UsuarioMeView(APIView):
-    """
-    View para o usuário autenticado gerenciar suas próprias informações.
-    - GET: Ver próprios dados
-    - PUT/PATCH: Atualizar próprios dados (campos limitados)
-    """
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = UsuarioMeSerializer  # Para documentação API
+    serializer_class = UsuarioMeSerializer
 
+    @extend_schema(
+        summary="Obter meus dados",
+        description="Retorna os dados do usuário autenticado.",
+        responses={200: UsuarioMeSerializer}
+    )
     def get(self, request):
-        """
-        Retorna os dados do usuário autenticado.
-        """
         serializer = UsuarioMeSerializer(request.user)
         success_data = SuccessResponse.retrieved(
             serializer.data,
@@ -230,56 +295,39 @@ class UsuarioMeView(APIView):
         )
         return Response(success_data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary="Atualizar meus dados",
+        description="Atualiza os dados do usuário autenticado.",
+        request=UsuarioMeSerializer,
+        responses={200: UsuarioMeSerializer, 400: OpenApiResponse(description="Erro de validação")}
+    )
     def put(self, request):
-        """
-        Permite ao usuário atualizar seus próprios dados.
-        """
         try:
-            serializer = UsuarioMeSerializer(
-                request.user,
-                data=request.data,
-                partial=True
-            )
+            serializer = UsuarioMeSerializer(request.user, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                logger.info(
-                    f"Usuário {request.user.matricula} atualizou seus dados"
-                )
-                success_data = SuccessResponse.updated(
-                    serializer.data,
-                    "Dados atualizados com sucesso."
-                )
+                logger.info(f"Usuário {request.user.matricula} atualizou seus dados")
+                success_data = SuccessResponse.updated(serializer.data, "Dados atualizados com sucesso.")
                 return Response(success_data, status=status.HTTP_200_OK)
 
-            # Log dos erros de validação para debugging
-            logger.warning(
-                f"Erro de validação para usuário {request.user.matricula}: "
-                f"{serializer.errors}"
-            )
-
-            # Usar o formatador padrão de erros de validação
+            logger.warning(f"Erro de validação para usuário {request.user.matricula}: {serializer.errors}")
             error_response = format_error_response(serializer.errors, 400)
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            logger.error(
-                f"Erro inesperado ao atualizar dados do usuário "
-                f"{request.user.matricula}: {str(e)}"
-            )
-            # Usar o formatador padrão para erro interno do servidor
-            error_response = format_error_response(
-                "Ocorreu um erro inesperado. Tente novamente.", 500
-            )
-            return Response(
-                error_response,
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Erro inesperado ao atualizar dados do usuário {request.user.matricula}: {str(e)}")
+            error_response = format_error_response("Ocorreu um erro inesperado. Tente novamente.", 500)
+            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @extend_schema(
+        summary="Atualização parcial dos meus dados",
+        description="Atualiza parcialmente os dados do usuário autenticado.",
+        request=UsuarioMeSerializer,
+        responses={200: UsuarioMeSerializer}
+    )
     def patch(self, request):
-        """
-        Permite ao usuário atualizar parcialmente seus próprios dados.
-        """
         return self.put(request)
+
 
 
 class UsuarioAtivarDesativarView(GenericAPIView):
@@ -289,10 +337,26 @@ class UsuarioAtivarDesativarView(GenericAPIView):
     - Usuários comuns só podem alterar seu próprio status
     - Alterna automaticamente o status is_active (toggle)
     """
+
+@extend_schema(
+    tags=["Usuários"],
+    summary="Ativar/Desativar usuário",
+    description="Alterna o status de ativo (`is_active`) de um usuário. "
+                "Admins podem alterar qualquer usuário, usuários comuns apenas a si mesmos.",
+    parameters=[OpenApiParameter("matricula", str, OpenApiParameter.PATH, description="Matrícula do usuário")],
+    responses={
+        200: OpenApiResponse(description="Status alterado com sucesso"),
+        403: OpenApiResponse(description="Sem permissão"),
+        404: OpenApiResponse(description="Usuário não encontrado")
+    }
+)
+class UsuarioAtivarDesativarView(APIView):
+
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UsuarioAtivarDesativarSerializer
 
     def patch(self, request, matricula, *args, **kwargs):
+
         data = {"matricula": matricula}
         data.update(request.data)
         serializer = self.get_serializer(data=data)
@@ -302,55 +366,34 @@ class UsuarioAtivarDesativarView(GenericAPIView):
         (ativa se inativo, desativa se ativo).
         """
         # Validar se matrícula foi fornecida
-        if not matricula:
-            error_response = ValidationErrorResponse.required_field(
-                'matricula'
-            )
-            return Response(
-                error_response,
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
-        # Se admin, pode alterar qualquer usuário pela matrícula da URL
+        if not matricula:
+            error_response = ValidationErrorResponse.required_field('matricula')
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+
         if request.user.is_staff or request.user.is_superuser:
             try:
                 user = UsuarioCustom.objects.get(matricula=matricula)
             except UsuarioCustom.DoesNotExist:
                 error_response = ValidationErrorResponse.user_not_found()
-                return Response(
-                    error_response,
-                    status=status.HTTP_404_NOT_FOUND
-                )
+                return Response(error_response, status=status.HTTP_404_NOT_FOUND)
         else:
-            # Usuário comum só pode alterar a si mesmo
             user = request.user
             if matricula != user.matricula:
                 error_response = ValidationErrorResponse.permission_denied()
-                return Response(
-                    error_response,
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                return Response(error_response, status=status.HTTP_403_FORBIDDEN)
 
-        # Alternar o status is_active (toggle)
         user.is_active = not user.is_active
         user.save()
 
-        # Log da operação
         logger.info(
-            f"Usuário {user.matricula} foi "
-            f"{'ativado' if user.is_active else 'desativado'} "
+            f"Usuário {user.matricula} foi {'ativado' if user.is_active else 'desativado'} "
             f"por {request.user.matricula}"
         )
 
-        status_msg = (
-            f'Usuário {"ativado" if user.is_active else "desativado"} '
-            f'com sucesso.'
-        )
+        status_msg = f'Usuário {"ativado" if user.is_active else "desativado"} com sucesso.'
         success_response = SuccessResponse.updated(
-            {
-                'matricula': user.matricula,
-                'is_active': user.is_active,
-            },
+            {'matricula': user.matricula, 'is_active': user.is_active},
             status_msg
         )
         return Response(success_response, status=status.HTTP_200_OK)

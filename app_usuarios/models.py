@@ -83,40 +83,75 @@ class CustomUserManager(BaseUserManager):
 
 
 class UsuarioCustom(AbstractBaseUser, PermissionsMixin):
-    matricula = models.CharField(max_length=50, unique=True, blank=True)
-    nome_completo = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
-    cpf = models.CharField(max_length=11, unique=True)
-    telefone = models.CharField(max_length=15, blank=True, null=True)
-    data_nascimento = models.DateField()
+    matricula = models.CharField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        help_text="Identificador único do usuário no sistema. É gerado automaticamente se não for informado."
+    )
+    nome_completo = models.CharField(
+        max_length=255,
+        help_text="Nome completo do usuário."
+    )
+    email = models.EmailField(
+        unique=True,
+        help_text="Endereço de e-mail único para contato e login."
+    )
+    cpf = models.CharField(
+        max_length=11,
+        unique=True,
+        help_text="CPF do usuário, apenas números (11 dígitos)."
+    )
+    telefone = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="Número de telefone para contato. Pode incluir DDD."
+    )
+    data_nascimento = models.DateField(
+        help_text="Data de nascimento do usuário (formato AAAA-MM-DD)."
+    )
     sexo = models.CharField(
         max_length=1,
         choices=(('M', 'Masculino'), ('F', 'Feminino'), ('O', 'Outro')),
-        default='O'
+        default='O',
+        help_text="Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O)."
     )
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
-    data_criacao = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indica se a conta do usuário está ativa."
+    )
+    is_staff = models.BooleanField(
+        default=False,
+        help_text="Indica se o usuário pode acessar a área administrativa."
+    )
+    is_superuser = models.BooleanField(
+        default=False,
+        help_text="Indica se o usuário possui todas as permissões do sistema."
+    )
+    data_criacao = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Data e hora de criação do registro."
+    )
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='usuario_custom_set',
         blank=True,
         verbose_name='groups',
-        help_text='Os grupos aos quais este usuário pertence.',
+        help_text='Os grupos aos quais este usuário pertence.'
     )
     user_permissions = models.ManyToManyField(
         'auth.Permission',
         related_name='usuario_custom_set',
         blank=True,
         verbose_name='user permissions',
-        help_text='Permissões específicas para este usuário.',
+        help_text='Permissões específicas atribuídas a este usuário.'
     )
 
     username = None  # Removendo campo username
 
     USERNAME_FIELD = 'matricula'
-    REQUIRED_FIELDS = ['email', 'nome_completo']
+    REQUIRED_FIELDS = ['email', 'nome_completo', 'data_nascimento']
 
     objects = CustomUserManager()
 
