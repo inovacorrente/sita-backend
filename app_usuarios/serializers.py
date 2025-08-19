@@ -294,7 +294,7 @@ class TokenRefreshResponseSerializer(serializers.Serializer):
     token_type = serializers.CharField(help_text="Tipo do token (Bearer)")
     expires_in = serializers.IntegerField(
         help_text="Tempo de expiração em segundos"
-
+    )
     matricula = serializers.CharField(
         required=True,
         allow_blank=True,
