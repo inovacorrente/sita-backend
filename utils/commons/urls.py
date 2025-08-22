@@ -63,6 +63,9 @@ def get_base_url(request=None) -> str:
             settings.ALLOWED_HOSTS[0] != '*'):
         host = settings.ALLOWED_HOSTS[0]
         protocol = 'https' if not settings.DEBUG else 'http'
+        # Garantir que a porta seja incluída se necessário
+        if ':' not in host and settings.DEBUG and 'localhost' in host:
+            host = f"{host}:8000"
         return f"{protocol}://{host}"
 
     # 4. Fallback: desenvolvimento local
