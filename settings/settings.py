@@ -68,6 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'utils.commons.middleware.URLContextMiddleware',
 ]
 
 ROOT_URLCONF = 'settings.urls'
@@ -200,3 +201,9 @@ SPECTACULAR_SETTINGS = {
     'SORT_OPERATIONS_ALPHABETICALLY': False,
     'SORT_TAGS': True,
 }
+
+# URL do frontend para o QR Code (mantido para compatibilidade)
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
+# Configuração de domínio para URLs completas em produção
+SITE_DOMAIN = os.environ.get('SITE_DOMAIN', None)  # Ex: 'seudominio.com'
