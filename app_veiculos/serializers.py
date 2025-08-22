@@ -343,3 +343,136 @@ class VeiculoResumoSerializer(serializers.ModelSerializer):
         elif isinstance(obj, TransporteMunicipalVeiculo):
             return 'Transporte Municipal'
         return 'Desconhecido'
+
+
+# ============================================================================
+# SERIALIZERS PARA BANNER DE IDENTIFICAÇÃO
+# ============================================================================
+
+class BannerIdentificacaoSerializer(serializers.ModelSerializer):
+    """
+    Serializer para banner de identificação de veículos.
+    """
+    veiculo_identificador = serializers.CharField(
+        source='veiculo.identificador_unico_veiculo',
+        read_only=True
+    )
+    veiculo_placa = serializers.CharField(
+        source='veiculo.placa',
+        read_only=True
+    )
+    proprietario_nome = serializers.CharField(
+        source='veiculo.usuario.get_full_name',
+        read_only=True
+    )
+    banner_url_completa = serializers.SerializerMethodField()
+    qr_url_completa = serializers.SerializerMethodField()
+
+    class Meta:
+        from .models import BannerIdentificacao
+        model = BannerIdentificacao
+        fields = [
+            'id',
+            'veiculo',
+            'veiculo_identificador',
+            'veiculo_placa',
+            'proprietario_nome',
+            'arquivo_banner',
+            'banner_url_completa',
+            'qr_url',
+            'qr_url_completa',
+            'data_criacao',
+            'data_atualizacao',
+            'ativo'
+        ]
+        read_only_fields = [
+            'arquivo_banner',
+            'qr_url',
+            'data_criacao',
+            'data_atualizacao'
+        ]
+
+    def get_banner_url_completa(self, obj):
+        """
+        Retorna URL completa do arquivo do banner.
+        """
+        from utils.commons.urls import build_media_url
+
+        if not obj.arquivo_banner:
+            return None
+
+        request = self.context.get('request')
+        return build_media_url(obj.arquivo_banner.url, request)
+
+    def get_qr_url_completa(self, obj):
+        """
+        Retorna URL completa para informações do veículo (QR Code).
+        """
+        from utils.commons.urls import get_veiculo_info_url
+
+        if not obj.veiculo:
+            return None
+
+        request = self.context.get('request')
+        return get_veiculo_info_url(
+            obj.veiculo.identificador_unico_veiculo,
+            request
+        )
+
+
+class BannerCreateSerializer(serializers.Serializer):
+    """
+    Serializer para criação de banner de identificação.
+    """
+    identificador_veiculo = serializers.CharField(max_length=8)
+
+    def validate_identificador_veiculo(self, value):
+        """
+        Valida se o veículo existe e se o usuário tem permissão.
+        """
+        from django.contrib.contenttypes.models import ContentType
+
+        # Buscar em todos os tipos de veículo
+        veiculo = None
+        content_type = None
+
+        for model_class in [TaxiVeiculo, MotoTaxiVeiculo,
+                            TransporteMunicipalVeiculo]:
+            try:
+                veiculo = model_class.objects.get(
+                    identificador_unico_veiculo=value
+                )
+                content_type = ContentType.objects.get_for_model(model_class)
+                break
+            except model_class.DoesNotExist:
+                continue
+
+        if not veiculo:
+            raise serializers.ValidationError("Veículo não encontrado.")
+
+        # Verificar se usuário tem permissão (se necessário)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            if not user.is_staff and veiculo.usuario != user:
+                raise serializers.ValidationError(
+                    "Você não tem permissão para criar banner deste veículo."
+                )
+
+        # Verificar se já existe banner ativo
+        from .models import BannerIdentificacao
+        existing_banner = BannerIdentificacao.objects.filter(
+            content_type=content_type,
+            object_id=veiculo.id,
+            ativo=True
+        ).first()
+
+        if existing_banner:
+            raise serializers.ValidationError(
+                "Veículo já possui banner ativo."
+            )
+
+        # Salvar instâncias para uso posterior
+        self.veiculo_instance = veiculo
+        self.content_type_instance = content_type
+        return value

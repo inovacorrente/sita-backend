@@ -4,7 +4,8 @@ Inclui ModelAdmin para todos os tipos de veículos com campos personalizados.
 """
 from django.contrib import admin
 
-from .models import MotoTaxiVeiculo, TaxiVeiculo, TransporteMunicipalVeiculo
+from .models import (BannerIdentificacao, MotoTaxiVeiculo, TaxiVeiculo,
+                     TransporteMunicipalVeiculo)
 
 # ============================================================================
 # BASE ADMIN CLASS
@@ -159,6 +160,77 @@ class TransporteMunicipalVeiculoAdmin(BaseVeiculoAdmin):
 # ============================================================================
 # CUSTOMIZAÇÕES GERAIS DO ADMIN
 # ============================================================================
+
+@admin.register(BannerIdentificacao)
+class BannerIdentificacaoAdmin(admin.ModelAdmin):
+    """
+    Administração para banners de identificação de veículos.
+    """
+    list_display = [
+        'id',
+        'get_veiculo_info',
+        'get_proprietario_nome',
+        'ativo',
+        'data_criacao',
+        'data_atualizacao'
+    ]
+
+    list_filter = [
+        'ativo',
+        'data_criacao',
+        'content_type'
+    ]
+
+    search_fields = [
+        'veiculo__placa',
+        'veiculo__identificador_unico_veiculo'
+    ]
+
+    readonly_fields = [
+        'data_criacao',
+        'data_atualizacao',
+        'qr_url'
+    ]
+
+    actions = ['regenerar_banners']
+
+    def get_veiculo_info(self, obj):
+        """Retorna informações do veículo."""
+        if obj.veiculo:
+            placa = obj.veiculo.placa
+            identificador = obj.veiculo.identificador_unico_veiculo
+            return f"{placa} ({identificador})"
+        return "N/A"
+    get_veiculo_info.short_description = "Veículo"
+
+    def get_proprietario_nome(self, obj):
+        """Retorna nome do proprietário."""
+        if obj.veiculo and obj.veiculo.usuario:
+            return obj.veiculo.usuario.nome_completo
+        return "N/A"
+    get_proprietario_nome.short_description = "Proprietário"
+
+    def regenerar_banners(self, request, queryset):
+        """Action para regenerar banners selecionados."""
+        count = 0
+        for banner in queryset:
+            try:
+                banner.gerar_banner()
+                count += 1
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"Erro ao regenerar banner {banner.id}: {str(e)}",
+                    level='ERROR'
+                )
+
+        if count > 0:
+            self.message_user(
+                request,
+                f"{count} banner(s) regenerado(s) com sucesso."
+            )
+    regenerar_banners.short_description = "Regenerar banners selecionados"
+
 
 # Configurações do título do admin
 admin.site.site_header = "SITA - Sistema de Trânsito"
