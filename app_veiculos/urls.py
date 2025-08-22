@@ -23,7 +23,7 @@ router.register(
     basename='transporte-municipal-veiculo'
 )
 
-# Registra o ViewSet para banners
+# Registra o ViewSet para banners (usando identificador único do veículo)
 router.register(r'banners', BannerIdentificacaoViewSet, basename='banner')
 
 urlpatterns = [

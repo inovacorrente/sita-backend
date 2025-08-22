@@ -361,8 +361,17 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
         source='veiculo.placa',
         read_only=True
     )
+    veiculo_marca = serializers.CharField(
+        source='veiculo.marca',
+        read_only=True
+    )
+    veiculo_modelo = serializers.CharField(
+        source='veiculo.modelo',
+        read_only=True
+    )
+    veiculo_tipo = serializers.SerializerMethodField()
     proprietario_nome = serializers.CharField(
-        source='veiculo.usuario.get_full_name',
+        source='veiculo.usuario.nome_completo',
         read_only=True
     )
     banner_url_completa = serializers.SerializerMethodField()
@@ -372,10 +381,11 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
         from .models import BannerIdentificacao
         model = BannerIdentificacao
         fields = [
-            'id',
-            'veiculo',
             'veiculo_identificador',
             'veiculo_placa',
+            'veiculo_marca',
+            'veiculo_modelo',
+            'veiculo_tipo',
             'proprietario_nome',
             'arquivo_banner',
             'banner_url_completa',
@@ -386,11 +396,21 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
             'ativo'
         ]
         read_only_fields = [
+            'content_type',
+            'object_id',
             'arquivo_banner',
             'qr_url',
             'data_criacao',
             'data_atualizacao'
         ]
+
+    def get_veiculo_tipo(self, obj):
+        """
+        Retorna o tipo do veículo baseado no content_type.
+        """
+        if obj.content_type:
+            return obj.content_type.model
+        return None
 
     def get_banner_url_completa(self, obj):
         """

@@ -465,27 +465,77 @@ class BannerIdentificacaoViewSet(ModelViewSet):
     ViewSet para gerenciamento de banners de identificação.
     """
     queryset = BannerIdentificacao.objects.select_related(
-        'veiculo', 'veiculo__usuario'
+        'content_type'
     )
     serializer_class = BannerIdentificacaoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DjangoModelPermissionsWithView]
     filterset_fields = ['ativo']
     search_fields = [
-        'veiculo__placa',
-        'veiculo__identificador_unico_veiculo',
-        'veiculo__usuario__first_name'
+        # GenericForeignKey não suporta lookup direto nos search_fields
     ]
     ordering = ['-data_criacao']
+    lookup_field = 'veiculo__identificador_unico_veiculo'
+
+    def get_object(self):
+        """
+        Sobrescreve get_object para buscar banner pelo identificador único
+        do veículo.
+        """
+        lookup_value = self.kwargs[self.lookup_url_kwarg or self.lookup_field]
+
+        # Buscar o banner pelo identificador único do veículo
+        from django.shortcuts import get_object_or_404
+
+        # Buscar diretamente pelo identificador único
+        banner = get_object_or_404(
+            BannerIdentificacao,
+            identificador_unico_veiculo=lookup_value
+        )
+
+        return banner
 
     def get_queryset(self):
         """
         Filtra banners baseado nas permissões do usuário.
+        Para GenericForeignKey, precisamos fazer o filtro de forma diferente.
         """
         queryset = super().get_queryset()
 
         if not self.request.user.is_staff:
             # Usuários comuns só veem seus próprios banners
-            queryset = queryset.filter(veiculo__usuario=self.request.user)
+            # Como GenericForeignKey não permite filtro direto,
+            # vamos buscar IDs dos veículos do usuário
+            from django.contrib.contenttypes.models import ContentType
+
+            user_vehicle_ids = []
+
+            # Buscar IDs de cada tipo de veículo do usuário
+            for model_class in [TaxiVeiculo, MotoTaxiVeiculo,
+                                TransporteMunicipalVeiculo]:
+                content_type = ContentType.objects.get_for_model(model_class)
+                vehicle_ids = list(
+                    model_class.objects.filter(usuario=self.request.user)
+                    .values_list('id', flat=True)
+                )
+                for vehicle_id in vehicle_ids:
+                    user_vehicle_ids.append({
+                        'content_type': content_type,
+                        'object_id': vehicle_id
+                    })
+
+            # Filtrar banners apenas dos veículos do usuário
+            if user_vehicle_ids:
+                from django.db.models import Q
+                q_filter = Q()
+                for vehicle in user_vehicle_ids:
+                    q_filter |= Q(
+                        content_type=vehicle['content_type'],
+                        object_id=vehicle['object_id']
+                    )
+                queryset = queryset.filter(q_filter)
+            else:
+                # Se não tem veículos, retorna queryset vazio
+                queryset = queryset.none()
 
         return queryset
 
@@ -684,7 +734,9 @@ class BannerIdentificacaoViewSet(ModelViewSet):
 
             if not veiculo:
                 error_response = (
-                    VeiculoValidationErrorResponse.veiculo_nao_encontrado()
+                    VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                        identificador_veiculo
+                    )
                 )
                 return Response(
                     error_response, status=status.HTTP_404_NOT_FOUND
@@ -730,7 +782,7 @@ class BannerIdentificacaoViewSet(ModelViewSet):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, DjangoModelPermissionsWithView])
 def info_veiculo_publico(request, identificador_veiculo):
     """
     View pública para visualizar informações básicas do veículo via QR Code.
@@ -755,7 +807,9 @@ def info_veiculo_publico(request, identificador_veiculo):
                 continue
 
         if not veiculo:
-            error_msg = VeiculoValidationErrorResponse.veiculo_nao_encontrado()
+            error_msg = VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                identificador_veiculo
+            )
             return Response(error_msg, status=status.HTTP_404_NOT_FOUND)
 
         # Verificar se tem banner ativo
