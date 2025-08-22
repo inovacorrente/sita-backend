@@ -2,20 +2,23 @@ from django.contrib.auth.models import Group
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from utils.app_usuarios.validators import (
-    set_default_password_as_matricula,
-    validar_cpf, validar_email, validar_telefone,
-    validate_admin_privileges,
-    validate_cpf, validate_data_nascimento_range,
-    validate_email_unique, validate_password_confirmation,
-    validate_password_strength, validate_telefone_format
-)
+from utils.app_usuarios.validators import (set_default_password_as_matricula,
+                                           validar_cpf, validar_email,
+                                           validar_telefone,
+                                           validate_admin_privileges,
+                                           validate_cpf,
+                                           validate_data_nascimento_range,
+                                           validate_email_unique,
+                                           validate_password_confirmation,
+                                           validate_password_strength,
+                                           validate_telefone_format)
 
 from .models import UsuarioCustom
 
 # ============================================================================
 # AUTENTICAÇÃO
 # ============================================================================
+
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -141,7 +144,7 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuarioCustom
         fields = [
-            'matricula','nome_completo', 'email', 'cpf', 'telefone', 'password',
+            'matricula', 'nome_completo', 'email', 'cpf', 'telefone', 'password',
             'password_confirm', 'data_nascimento', 'sexo', 'groups',
             'is_staff', 'is_superuser',
         ]
@@ -158,10 +161,12 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         validated_cpf = validate_cpf(value)
         if self.instance:
             if UsuarioCustom.objects.filter(cpf=validated_cpf).exclude(pk=self.instance.pk).exists():
-                raise serializers.ValidationError("Este CPF já está sendo usado por outro usuário.")
+                raise serializers.ValidationError(
+                    "Este CPF já está sendo usado por outro usuário.")
         else:
             if UsuarioCustom.objects.filter(cpf=validated_cpf).exists():
-                raise serializers.ValidationError("Este CPF já está cadastrado no sistema.")
+                raise serializers.ValidationError(
+                    "Este CPF já está cadastrado no sistema.")
         return validated_cpf
 
     def validate_email(self, value):
@@ -214,7 +219,8 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
                 user.groups.set(groups)
             return user
         except Exception as e:
-            raise serializers.ValidationError(f"Erro ao criar usuário: {str(e)}")
+            raise serializers.ValidationError(
+                f"Erro ao criar usuário: {str(e)}")
 
     def update(self, instance, validated_data):
         """Atualiza os dados de um usuário existente."""
@@ -261,9 +267,11 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
 class UsuarioAtivarDesativarSerializer(serializers.Serializer):
     """
     Serializador para ativar ou desativar um usuário.
+    Este endpoint faz um toggle automatico do status is_active.
     """
-    matricula = serializers.CharField(required=True, allow_blank=True)
-    is_active = serializers.BooleanField(required=True)
+    # Não precisamos de campos obrigatórios pois a matrícula vem da URL
+    # e o is_active é alternado automaticamente
+    pass
 
 
 class LogoutSerializer(serializers.Serializer):
@@ -294,13 +302,4 @@ class TokenRefreshResponseSerializer(serializers.Serializer):
     token_type = serializers.CharField(help_text="Tipo do token (Bearer)")
     expires_in = serializers.IntegerField(
         help_text="Tempo de expiração em segundos"
-    )
-    matricula = serializers.CharField(
-        required=True,
-        allow_blank=True,
-        help_text="Matrícula do usuário."
-    )
-    is_active = serializers.BooleanField(
-        required=True,
-        help_text="Define se o usuário estará ativo (true) ou inativo (false)."
     )
