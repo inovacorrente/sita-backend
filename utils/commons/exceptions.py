@@ -119,3 +119,27 @@ class ValidationErrorResponse:
             },
             'details': f"Forneça um valor válido para o campo {field_name}."
         }
+
+    @staticmethod
+    def erro_interno(mensagem_ou_dict=None):
+        """Resposta para erro interno do servidor."""
+        if mensagem_ou_dict is None:
+            mensagem = "Erro interno do servidor"
+        elif isinstance(mensagem_ou_dict, dict):
+            mensagem = mensagem_ou_dict.get(
+                'detail', 'Erro interno do servidor'
+            )
+        else:
+            mensagem = str(mensagem_ou_dict)
+
+        return {
+            'success': False,
+            'status_code': 500,
+            'message': "Erro interno do servidor.",
+            'errors': {
+                'servidor': (
+                    "Ocorreu um erro interno. Tente novamente mais tarde."
+                )
+            },
+            'details': mensagem
+        }

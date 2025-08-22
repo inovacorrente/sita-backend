@@ -56,6 +56,14 @@ class VeiculoSuccessResponse(SuccessResponse):
             message=message
         )
 
+    @staticmethod
+    def veiculo_encontrado(data, message="Informações do veículo"):
+        """Resposta para veículo encontrado."""
+        return SuccessResponse.retrieved(
+            data=data,
+            message=message
+        )
+
 
 class VeiculoValidationErrorResponse(ValidationErrorResponse):
     """

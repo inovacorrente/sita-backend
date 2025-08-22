@@ -5,8 +5,9 @@ Define as rotas para todos os tipos de veículos.
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (MotoTaxiVeiculoViewSet, TaxiVeiculoViewSet,
-                    TransporteMunicipalVeiculoViewSet)
+from .views import (BannerIdentificacaoViewSet, MotoTaxiVeiculoViewSet,
+                    TaxiVeiculoViewSet, TransporteMunicipalVeiculoViewSet,
+                    info_veiculo_publico)
 
 # Cria o roteador e registra os ViewSets
 router = DefaultRouter()
@@ -22,7 +23,17 @@ router.register(
     basename='transporte-municipal-veiculo'
 )
 
+# Registra o ViewSet para banners (usando identificador único do veículo)
+router.register(r'banners', BannerIdentificacaoViewSet, basename='banner')
+
 urlpatterns = [
     # Inclui as URLs geradas automaticamente pelo roteador
     path('', include(router.urls)),
+
+    # URL pública para visualizar informações do veículo via QR Code
+    path(
+        'veiculo/<str:identificador_veiculo>/info/',
+        info_veiculo_publico,
+        name='info_veiculo_publico'
+    ),
 ]
