@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "sita-backend-api",
 		"name": "SITA Backend API - Sistema STRANS",
-		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários com busca e filtros avançados\n- Gestão completa de veículos (Táxis, Mototáxis, Transporte Municipal)\n- Gestão de condutores e informações de CNH\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Módulos disponíveis:**\n\n**🔐 Autenticação:**\n- Login com matrícula e senha\n- Tokens JWT com refresh automático\n\n**👤 Usuários:**\n- Informações próprias (visualizar/editar)\n- Gestão completa (CRUD) para administradores\n- Busca por matrícula, nome, email ou CPF\n- Filtros por status (ativo/inativo, staff, superuser)\n- Ordenação e paginação\n\n**🚗 Veículos:**\n- **Táxis:** Cadastro e gestão de veículos táxi\n- **Mototáxis:** Cadastro e gestão de motocicletas para mototáxi\n- **Transporte Municipal:** Gestão de ônibus e veículos de transporte público\n- Campos únicos: placa, RENAVAM, chassi\n- Identificador único gerado automaticamente\n- Filtros por usuário, placa, marca, modelo\n- Busca geral e paginação\n\n**🏃‍♂️ Condutores:**\n- Cadastro de informações de CNH\n- Categorias A, B, C, D, E e combinações\n- Controle de validade da CNH\n- Busca por categoria e dados do condutor\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR\n\n**URLs principais:**\n- Login: `/api/usuarios/login/`\n- Usuários: `/api/usuarios/`\n- Veículos: `/api/veiculos/`\n- Condutores: `/api/condutores/`\n\n**Validações implementadas:**\n- CPF brasileiro (11 dígitos)\n- Placa brasileira (formato antigo e Mercosul)\n- RENAVAM (11 dígitos)\n- Chassi (17 caracteres)\n- Telefone brasileiro\n- Datas de CNH (emissão e validade)\n\n**Funcionalidades de Segurança:**\n- Autenticação JWT obrigatória\n- Permissões baseadas em grupos\n- Usuários não-administradores veem apenas seus próprios dados\n- Validações de integridade de dados",
+		"description": "Collection para testar todas as funcionalidades da API do Sistema SITA (Sistema de Trânsito) da STRANS.\n\nEsta collection inclui:\n- Autenticação JWT\n- CRUD de usuários com busca e filtros avançados\n- Gestão completa de veículos (Táxis, Mototáxis, Transporte Municipal)\n- Gestão de condutores e informações de CNH\n- **Geração de QR Code e banners de identificação**\n- Funcionalidades específicas do sistema\n\n**Como usar:**\n1. Configure a variável {{base_url}} no Environment (ex: http://localhost:8000)\n2. Execute o login para obter o token JWT\n3. O token será automaticamente configurado para as demais requisições\n\n**Módulos disponíveis:**\n\n**🔐 Autenticação:**\n- Login com matrícula e senha\n- Tokens JWT com refresh automático\n\n**👤 Usuários:**\n- Informações próprias (visualizar/editar)\n- Gestão completa (CRUD) para administradores\n- Busca por matrícula, nome, email ou CPF\n- Filtros por status (ativo/inativo, staff, superuser)\n- Ordenação e paginação\n\n**🚗 Veículos:**\n- **Táxis:** Cadastro e gestão de veículos táxi\n- **Mototáxis:** Cadastro e gestão de motocicletas para mototáxi\n- **Transporte Municipal:** Gestão de ônibus e veículos de transporte público\n- Campos únicos: placa, RENAVAM, chassi\n- Identificador único gerado automaticamente\n- Filtros por usuário, placa, marca, modelo\n- Busca geral e paginação\n\n**📱 QR Code e Banners:**\n- **Geração automática de banners** com QR Code para identificação\n- **Download de banners** em formato PNG\n- **URLs públicas** para informações do veículo via QR Code\n- **Gestão de banners** (ativo/inativo)\n- **Visualização pública** de dados do veículo para fiscalização\n\n**🏃‍♂️ Condutores:**\n- Cadastro de informações de CNH\n- Categorias A, B, C, D, E e combinações\n- Controle de validade da CNH\n- Busca por categoria e dados do condutor\n\n**Grupos de usuários disponíveis:**\n- ADMINISTRADOR\n- ATENDENTE ADMINISTRATIVO\n- FISCAL\n- CONDUTOR\n\n**URLs principais:**\n- Login: `/api/usuarios/login/`\n- Usuários: `/api/usuarios/`\n- Veículos: `/api/veiculos/`\n- Banners/QR Code: `/api/veiculos/banners/`\n- Informações públicas: `/api/veiculos/veiculo/{identificador}/info/`\n- Condutores: `/api/condutores/`\n\n**Validações implementadas:**\n- CPF brasileiro (11 dígitos)\n- Placa brasileira (formato antigo e Mercosul)\n- RENAVAM (11 dígitos)\n- Chassi (17 caracteres)\n- Telefone brasileiro\n- Datas de CNH (emissão e validade)\n\n**Funcionalidades de Segurança:**\n- Autenticação JWT obrigatória\n- Permissões baseadas em grupos\n- Usuários não-administradores veem apenas seus próprios dados\n- Validações de integridade de dados\n- Endpoint público protegido para informações básicas via QR Code",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "sita-backend"
 	},
@@ -1337,6 +1337,270 @@
 				}
 			],
 			"description": "Endpoints para gestão completa de veículos (Táxis, Mototáxis e Transporte Municipal)."
+		},
+		{
+			"name": "📱 QR Code e Banners",
+			"item": [
+				{
+					"name": "Listar Banners",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/?page=1&page_size=10&ativo=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página"
+								},
+								{
+									"key": "page_size",
+									"value": "10",
+									"description": "Itens por página"
+								},
+								{
+									"key": "ativo",
+									"value": "true",
+									"description": "Filtrar por status ativo/inativo"
+								}
+							]
+						},
+						"description": "Lista todos os banners de identificação com QR Code.\n\n**Filtros disponíveis:**\n- `ativo`: true/false para filtrar por status\n\n**Resposta:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"count\": 25,\n    \"next\": \"http://localhost:8000/api/veiculos/banners/?page=2\",\n    \"previous\": null,\n    \"results\": [\n      {\n        \"id\": 1,\n        \"identificador_unico_veiculo\": \"TXI001ABC123\",\n        \"veiculo_info\": {\n          \"placa\": \"ABC1234\",\n          \"marca\": \"Toyota\",\n          \"modelo\": \"Corolla\",\n          \"ano\": 2020\n        },\n        \"arquivo_banner\": \"/media/banners/banner_TXI001ABC123.png\",\n        \"qr_url\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n        \"qr_url_completa\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n        \"ativo\": true,\n        \"data_criacao\": \"2024-01-15T10:30:00Z\",\n        \"data_atualizacao\": \"2024-01-15T10:30:00Z\"\n      }\n    ]\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Criar Banner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"identificador_unico_veiculo\": \"TXI001ABC123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								""
+							]
+						},
+						"description": "Cria um novo banner com QR Code para um veículo.\n\n**Corpo da requisição:**\n```json\n{\n  \"identificador_unico_veiculo\": \"TXI001ABC123\"\n}\n```\n\n**Resposta de sucesso:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"identificador_unico_veiculo\": \"TXI001ABC123\",\n    \"veiculo_info\": {\n      \"placa\": \"ABC1234\",\n      \"marca\": \"Toyota\",\n      \"modelo\": \"Corolla\",\n      \"ano\": 2020\n    },\n    \"arquivo_banner\": \"/media/banners/banner_TXI001ABC123.png\",\n    \"qr_url\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n    \"qr_url_completa\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n    \"ativo\": true,\n    \"data_criacao\": \"2024-01-15T10:30:00Z\",\n    \"data_atualizacao\": \"2024-01-15T10:30:00Z\"\n  },\n  \"message\": \"Banner criado com sucesso\"\n}\n```\n\n**Validações:**\n- Veículo deve existir\n- Usuário deve ter permissão para o veículo\n- Um banner por veículo (substitui se já existir)"
+					}
+				},
+				{
+					"name": "Detalhes do Banner",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/TXI001ABC123/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								"TXI001ABC123",
+								""
+							]
+						},
+						"description": "Obtém detalhes de um banner específico pelo identificador único do veículo.\n\n**Resposta:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"identificador_unico_veiculo\": \"TXI001ABC123\",\n    \"veiculo_info\": {\n      \"placa\": \"ABC1234\",\n      \"marca\": \"Toyota\",\n      \"modelo\": \"Corolla\",\n      \"ano\": 2020,\n      \"cor\": \"Branco\",\n      \"usuario\": {\n        \"matricula\": \"123456789012\",\n        \"nome_completo\": \"João Silva\"\n      }\n    },\n    \"arquivo_banner\": \"/media/banners/banner_TXI001ABC123.png\",\n    \"qr_url\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n    \"qr_url_completa\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n    \"ativo\": true,\n    \"data_criacao\": \"2024-01-15T10:30:00Z\",\n    \"data_atualizacao\": \"2024-01-15T10:30:00Z\"\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Atualizar Banner",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ativo\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/TXI001ABC123/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								"TXI001ABC123",
+								""
+							]
+						},
+						"description": "Atualiza um banner existente.\n\n**Campos editáveis:**\n- `ativo`: true/false para ativar/desativar o banner\n\n**Corpo da requisição:**\n```json\n{\n  \"ativo\": false\n}\n```\n\n**Resposta:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"identificador_unico_veiculo\": \"TXI001ABC123\",\n    \"ativo\": false,\n    \"data_atualizacao\": \"2024-01-15T14:20:00Z\"\n  },\n  \"message\": \"Banner atualizado com sucesso\"\n}\n```"
+					}
+				},
+				{
+					"name": "Excluir Banner",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/TXI001ABC123/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								"TXI001ABC123",
+								""
+							]
+						},
+						"description": "Exclui um banner e seu arquivo associado.\n\n**Resposta de sucesso:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Banner excluído com sucesso\"\n}\n```\n\n**Observações:**\n- Remove o arquivo físico do banner\n- Operação irreversível\n- Usuário deve ter permissão para o veículo"
+					}
+				},
+				{
+					"name": "Download do Banner",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/TXI001ABC123/download/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								"TXI001ABC123",
+								"download",
+								""
+							]
+						},
+						"description": "Faz download do arquivo PNG do banner.\n\n**Resposta:**\n- Content-Type: image/png\n- Content-Disposition: attachment; filename=\"banner_TXI001ABC123.png\"\n- Arquivo binário PNG\n\n**Uso:**\nEste endpoint retorna o arquivo de imagem diretamente para download.\nO banner inclui:\n- Informações do veículo (placa, marca, modelo)\n- QR Code para acesso às informações públicas\n- Layout padronizado da STRANS\n\n**Exemplo de nome do arquivo:**\n`banner_TXI001ABC123.png`"
+					}
+				},
+				{
+					"name": "URLs Completas do Banner",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/banners/TXI001ABC123/url_completa/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"banners",
+								"TXI001ABC123",
+								"url_completa",
+								""
+							]
+						},
+						"description": "Retorna URLs completas para o banner e informações do veículo.\n\n**Resposta:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"banner_id\": 1,\n    \"identificador_veiculo\": \"TXI001ABC123\",\n    \"placa\": \"ABC1234\",\n    \"banner_url\": \"http://localhost:8000/media/banners/banner_TXI001ABC123.png\",\n    \"qr_url\": \"http://localhost:8000/api/veiculos/veiculo/TXI001ABC123/info/\",\n    \"download_url\": \"http://localhost:8000/api/veiculos/banners/TXI001ABC123/download/\",\n    \"banner_info_url\": \"http://localhost:8000/api/veiculos/banners/TXI001ABC123/\"\n  }\n}\n```\n\n**Uso:**\nÚtil para aplicações frontend que precisam construir links completos para:\n- Visualizar o banner\n- Acessar informações via QR Code\n- Download do arquivo\n- Gerenciamento do banner"
+					}
+				},
+				{
+					"name": "📱 Informações Públicas do Veículo (QR Code)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/veiculos/veiculo/TXI001ABC123/info/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"veiculos",
+								"veiculo",
+								"TXI001ABC123",
+								"info",
+								""
+							]
+						},
+						"description": "**Endpoint protegido** para visualizar informações básicas do veículo via QR Code.\n\n**⚠️ IMPORTANTE: Este endpoint REQUER autenticação JWT!**\n\n**Características:**\n- URL codificada no QR Code dos banners\n- **Requer token JWT válido**\n- Exibe informações públicas do veículo\n- Inclui dados do condutor e veículo\n- Útil para fiscalização e verificação\n- Permissões baseadas em Django Model Permissions\n\n**Resposta:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"identificador_unico\": \"TXI001ABC123\",\n    \"placa\": \"ABC1234\",\n    \"marca\": \"Toyota\",\n    \"modelo\": \"Corolla\",\n    \"cor\": \"Branco\",\n    \"ano_fabricacao\": 2020,\n    \"tipo_veiculo\": \"TaxiVeiculo\",\n    \"proprietario\": {\n      \"nome\": \"João Silva\"\n    },\n    \"data_verificacao\": \"2024-01-15T16:45:00Z\"\n  }\n}\n```\n\n**Casos de uso:**\n- Verificação por fiscais de trânsito autenticados\n- Validação por usuários do sistema\n- Acesso controlado a informações do veículo\n- Transparência de dados com controle de acesso\n- **QR Codes que direcionam usuários autenticados**\n\n**Erro de autenticação:**\n```json\n{\n  \"success\": false,\n  \"errors\": {\n    \"detail\": \"Authentication credentials were not provided.\"\n  }\n}\n```\n\n**Erro quando veículo não encontrado:**\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VEICULO_NAO_ENCONTRADO\",\n    \"message\": \"Veículo com identificador 'TXI001ABC123' não foi encontrado\",\n    \"details\": {\n      \"identificador\": \"TXI001ABC123\"\n    }\n  }\n}\n```"
+					}
+				}
+			],
+			"description": "Endpoints para gestão de banners de identificação com QR Code.\n\nFuncionalidades:\n- Criação automática de banners com QR Code\n- Download de arquivos PNG\n- URLs públicas para informações do veículo\n- Gestão de banners ativos/inativos\n\n**Fluxo típico:**\n1. Criar banner: `POST /api/veiculos/banners/`\n2. Download: `GET /api/veiculos/banners/{identificador}/download/`\n3. QR Code aponta para: `/api/veiculos/veiculo/{identificador}/info/`"
 		},
 		{
 			"name": "🏃‍♂️ Gestão de Condutores",

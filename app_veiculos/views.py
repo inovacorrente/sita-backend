@@ -12,9 +12,10 @@ from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from PIL import Image, ImageDraw, ImageFont
 from rest_framework import status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -460,6 +461,19 @@ class TransporteMunicipalVeiculoViewSet(BaseVeiculoViewSet):
 # ============================================================================
 
 
+@extend_schema_view(
+    retrieve=extend_schema(
+        parameters=[
+            {
+                'name': 'identificador_unico_veiculo',
+                'in': 'path',
+                'description': 'Identificador único do veículo',
+                'required': True,
+                'type': 'string'
+            }
+        ]
+    )
+)
 class BannerIdentificacaoViewSet(ModelViewSet):
     """
     ViewSet para gerenciamento de banners de identificação.
@@ -474,7 +488,7 @@ class BannerIdentificacaoViewSet(ModelViewSet):
         # GenericForeignKey não suporta lookup direto nos search_fields
     ]
     ordering = ['-data_criacao']
-    lookup_field = 'veiculo__identificador_unico_veiculo'
+    lookup_field = 'identificador_unico_veiculo'
 
     def get_object(self):
         """
@@ -548,9 +562,6 @@ class BannerIdentificacaoViewSet(ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
 
-        identificador_veiculo = serializer.validated_data[
-            'identificador_veiculo'
-        ]
         veiculo = serializer.veiculo_instance
         content_type = serializer.content_type_instance
 
@@ -635,7 +646,9 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             filename = (
                 f"banner_{banner.veiculo.identificador_unico_veiculo}.png"
             )
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Disposition'] = (
+                f'attachment; filename="{filename}"'
+            )
 
             logger.info(
                 f"Download do banner para veículo "
@@ -781,86 +794,108 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             )
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, DjangoModelPermissionsWithView])
-def info_veiculo_publico(request, identificador_veiculo):
+class InfoVeiculoPublicoView(ModelViewSet):
     """
-    View pública para visualizar informações básicas do veículo via QR Code.
-    Não requer autenticação.
+    View para visualizar informações básicas do veículo via QR Code.
+    Requer autenticação e permissões adequadas.
     """
-    try:
-        from django.contrib.contenttypes.models import ContentType
+    queryset = BannerIdentificacao.objects.select_related('content_type')
+    serializer_class = BannerIdentificacaoSerializer
+    permission_classes = [IsAuthenticated, DjangoModelPermissionsWithView]
+    lookup_field = 'identificador_veiculo'
+    http_method_names = ['get']  # Apenas GET permitido
 
-        # Buscar em todos os tipos de veículo
-        veiculo = None
-        content_type = None
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retorna informações básicas do veículo pelo identificador único.
+        """
+        identificador_veiculo = kwargs.get('identificador_veiculo')
 
-        for model_class in [TaxiVeiculo, MotoTaxiVeiculo,
-                            TransporteMunicipalVeiculo]:
-            try:
-                veiculo = model_class.objects.select_related('usuario').get(
-                    identificador_unico_veiculo=identificador_veiculo
+        try:
+            from django.contrib.contenttypes.models import ContentType
+
+            # Buscar em todos os tipos de veículo
+            veiculo = None
+            content_type = None
+
+            for model_class in [TaxiVeiculo, MotoTaxiVeiculo,
+                                TransporteMunicipalVeiculo]:
+                try:
+                    veiculo = model_class.objects.select_related(
+                        'usuario'
+                    ).get(
+                        identificador_unico_veiculo=identificador_veiculo
+                    )
+                    content_type = ContentType.objects.get_for_model(
+                        model_class
+                    )
+                    break
+                except model_class.DoesNotExist:
+                    continue
+
+            if not veiculo:
+                error_msg = (
+                    VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                        identificador_veiculo
+                    )
                 )
-                content_type = ContentType.objects.get_for_model(model_class)
-                break
-            except model_class.DoesNotExist:
-                continue
+                return Response(error_msg, status=status.HTTP_404_NOT_FOUND)
 
-        if not veiculo:
-            error_msg = VeiculoValidationErrorResponse.veiculo_nao_encontrado(
-                identificador_veiculo
+            # Verificar se tem banner ativo
+            banner = BannerIdentificacao.objects.filter(
+                content_type=content_type,
+                object_id=veiculo.id,
+                ativo=True
+            ).first()
+
+            if not banner:
+                error_msg = (
+                    VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                        "Informações não disponíveis"
+                    )
+                )
+                return Response(error_msg, status=status.HTTP_404_NOT_FOUND)
+
+            # Retornar apenas informações públicas básicas
+            data = {
+                'identificador_unico': veiculo.identificador_unico_veiculo,
+                'placa': veiculo.placa,
+                'marca': veiculo.marca,
+                'modelo': veiculo.modelo,
+                'cor': veiculo.cor,
+                'ano_fabricacao': veiculo.anoFabricacao,
+                'tipo_veiculo': veiculo.__class__.__name__,
+                'proprietario': {
+                    'nome': veiculo.usuario.nome_completo,
+                    # Não incluir informações sensíveis como CPF, etc.
+                },
+                'data_verificacao': timezone.now().isoformat()
+            }
+
+            # Adicionar informações específicas por tipo
+            if isinstance(veiculo, TransporteMunicipalVeiculo):
+                data['linha'] = veiculo.linha
+                data['capacidade'] = veiculo.capacidade
+
+            logger.info(
+                f"Consulta de informações do veículo "
+                f"{identificador_veiculo} por {request.user}"
             )
-            return Response(error_msg, status=status.HTTP_404_NOT_FOUND)
-
-        # Verificar se tem banner ativo
-        banner = BannerIdentificacao.objects.filter(
-            content_type=content_type,
-            object_id=veiculo.id,
-            ativo=True
-        ).first()
-
-        if not banner:
-            error_msg = VeiculoValidationErrorResponse.veiculo_nao_encontrado(
-                "Informações não disponíveis"
+            response_data = VeiculoSuccessResponse.veiculo_encontrado(
+                data, "Informações do veículo"
             )
-            return Response(error_msg, status=status.HTTP_404_NOT_FOUND)
+            return Response(response_data, status=status.HTTP_200_OK)
 
-        # Retornar apenas informações públicas básicas
-        data = {
-            'identificador_unico': veiculo.identificador_unico_veiculo,
-            'placa': veiculo.placa,
-            'marca': veiculo.marca,
-            'modelo': veiculo.modelo,
-            'cor': veiculo.cor,
-            'ano_fabricacao': veiculo.anoFabricacao,
-            'tipo_veiculo': veiculo.__class__.__name__,
-            'proprietario': {
-                'nome': veiculo.usuario.nome_completo,
-                # Não incluir informações sensíveis como CPF, telefone, etc.
-            },
-            'data_verificacao': timezone.now().isoformat()
-        }
+        except Exception as e:
+            logger.error(
+                f"Erro na consulta do veículo "
+                f"{identificador_veiculo}: {str(e)}"
+            )
+            error_response = VeiculoValidationErrorResponse.erro_interno()
+            return Response(
+                error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        # Adicionar informações específicas por tipo
-        if isinstance(veiculo, TransporteMunicipalVeiculo):
-            data['linha'] = veiculo.linha
-            data['capacidade'] = veiculo.capacidade
 
-        logger.info(
-            f"Consulta pública de informações do veículo "
-            f"{identificador_veiculo}"
-        )
-        response_data = VeiculoSuccessResponse.veiculo_encontrado(
-            data, "Informações do veículo"
-        )
-        return Response(response_data, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        logger.error(
-            f"Erro na consulta pública do veículo "
-            f"{identificador_veiculo}: {str(e)}"
-        )
-        error_response = VeiculoValidationErrorResponse.erro_interno()
-        return Response(
-            error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+# Instância da view para uso nas URLs
+info_veiculo_publico = InfoVeiculoPublicoView.as_view({'get': 'retrieve'})

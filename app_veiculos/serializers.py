@@ -3,6 +3,7 @@ Serializers para o app de veículos do sistema SITA.
 Inclui serializers para todos os tipos de veículos (Táxi, Mototáxi,
 Transporte Municipal).
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from app_usuarios.models import UsuarioCustom
@@ -404,7 +405,8 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
             'data_atualizacao'
         ]
 
-    def get_veiculo_tipo(self, obj):
+    @extend_schema_field(serializers.CharField())
+    def get_veiculo_tipo(self, obj) -> str:
         """
         Retorna o tipo do veículo baseado no content_type.
         """
@@ -412,7 +414,8 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
             return obj.content_type.model
         return None
 
-    def get_banner_url_completa(self, obj):
+    @extend_schema_field(serializers.URLField())
+    def get_banner_url_completa(self, obj) -> str:
         """
         Retorna URL completa do arquivo do banner.
         """
@@ -424,7 +427,8 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return build_media_url(obj.arquivo_banner.url, request)
 
-    def get_qr_url_completa(self, obj):
+    @extend_schema_field(serializers.URLField())
+    def get_qr_url_completa(self, obj) -> str:
         """
         Retorna URL completa para informações do veículo (QR Code).
         """
