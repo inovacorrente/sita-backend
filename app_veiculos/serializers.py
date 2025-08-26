@@ -354,9 +354,10 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
     """
     Serializer para banner de identificação de veículos.
     """
-    veiculo_identificador = serializers.CharField(
-        source='veiculo.identificador_unico_veiculo',
-        read_only=True
+    identificador_veiculo = serializers.CharField(
+        source='identificador_unico_veiculo',
+        read_only=True,
+        help_text="Identificador único do veículo"
     )
     veiculo_placa = serializers.CharField(
         source='veiculo.placa',
@@ -382,7 +383,7 @@ class BannerIdentificacaoSerializer(serializers.ModelSerializer):
         from .models import BannerIdentificacao
         model = BannerIdentificacao
         fields = [
-            'veiculo_identificador',
+            'identificador_veiculo',
             'veiculo_placa',
             'veiculo_marca',
             'veiculo_modelo',

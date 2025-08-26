@@ -12,11 +12,11 @@ from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from PIL import Image, ImageDraw, ImageFont
+from drf_spectacular.utils import (OpenApiParameter, OpenApiResponse,
+                                   extend_schema, extend_schema_view)
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -464,14 +464,25 @@ class TransporteMunicipalVeiculoViewSet(BaseVeiculoViewSet):
 @extend_schema_view(
     retrieve=extend_schema(
         parameters=[
-            {
-                'name': 'identificador_unico_veiculo',
-                'in': 'path',
-                'description': 'Identificador único do veículo',
-                'required': True,
-                'type': 'string'
-            }
+            OpenApiParameter(
+                name='identificador_unico_veiculo',
+                location=OpenApiParameter.PATH,
+                description='Identificador único do veículo',
+                required=True,
+                type=str
+            )
         ]
+    ),
+    create=extend_schema(
+        request=BannerCreateSerializer,
+        responses={
+            201: BannerIdentificacaoSerializer,
+            400: OpenApiResponse(description='Dados inválidos fornecidos'),
+            403: OpenApiResponse(description='Sem permissão'),
+            404: OpenApiResponse(description='Veículo não encontrado'),
+        },
+        description='Cria um novo banner de identificação para um veículo',
+        summary='Criar banner de identificação'
     )
 )
 class BannerIdentificacaoViewSet(ModelViewSet):
@@ -586,8 +597,8 @@ class BannerIdentificacaoViewSet(ModelViewSet):
                 f"Banner criado com sucesso para veículo "
                 f"{veiculo.identificador_unico_veiculo}"
             )
-            response_data = VeiculoSuccessResponse.veiculo_criado(
-                result_serializer.data, "Banner criado com sucesso"
+            response_data = VeiculoSuccessResponse.veiculo_created(
+                result_serializer.data, "banner de identificação"
             )
             return Response(response_data, status=status.HTTP_201_CREATED)
 
