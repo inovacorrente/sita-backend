@@ -776,7 +776,9 @@ paths:
   /api/veiculos/banners/:
     get:
       operationId: veiculos_banners_list
-      description: ViewSet para gerenciamento de banners de identificação.
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
       parameters:
       - in: query
         name: format
@@ -860,7 +862,9 @@ paths:
   /api/veiculos/banners/{identificador_unico_veiculo}/:
     get:
       operationId: veiculos_banners_retrieve
-      description: ViewSet para gerenciamento de banners de identificação.
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
       parameters:
       - in: query
         name: format
@@ -893,55 +897,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/BannerIdentificacao'
           description: ''
-    put:
-      operationId: veiculos_banners_update
-      description: ViewSet para gerenciamento de banners de identificação.
-      parameters:
-      - in: query
-        name: format
-        schema:
-          type: string
-          enum:
-          - json
-          - yaml
-      - in: path
-        name: identificador_unico_veiculo
-        schema:
-          type: string
-          description: Identificador único do veículo
-        required: true
-      tags:
-      - veiculos
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BannerIdentificacao'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/BannerIdentificacao'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/BannerIdentificacao'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BannerIdentificacao'
-            application/vnd.oai.openapi:
-              schema:
-                $ref: '#/components/schemas/BannerIdentificacao'
-            application/vnd.oai.openapi+json:
-              schema:
-                $ref: '#/components/schemas/BannerIdentificacao'
-          description: ''
     patch:
       operationId: veiculos_banners_partial_update
-      description: ViewSet para gerenciamento de banners de identificação.
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
       parameters:
       - in: query
         name: format
@@ -985,31 +945,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/BannerIdentificacao'
           description: ''
-    delete:
-      operationId: veiculos_banners_destroy
-      description: ViewSet para gerenciamento de banners de identificação.
-      parameters:
-      - in: query
-        name: format
-        schema:
-          type: string
-          enum:
-          - json
-          - yaml
-      - in: path
-        name: identificador_unico_veiculo
-        schema:
-          type: string
-          description: Identificador único do veículo
-        required: true
-      tags:
-      - veiculos
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/veiculos/banners/{identificador_unico_veiculo}/download/:
     get:
       operationId: veiculos_banners_download_retrieve
@@ -1049,7 +984,9 @@ paths:
   /api/veiculos/banners/{identificador_unico_veiculo}/regenerar/:
     post:
       operationId: veiculos_banners_regenerar_create
-      description: Regenera o banner de identificação.
+      description: |-
+        Regenera o banner de identificação.
+        Remove o arquivo anterior antes de gerar um novo.
       parameters:
       - in: query
         name: format
@@ -1077,6 +1014,54 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/BannerIdentificacao'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/{identificador_unico_veiculo}/toggle-status/:
+    patch:
+      operationId: veiculos_banners_toggle_status_partial_update
+      description: |-
+        Alterna o status ativo do banner
+        (ativa se inativo, desativa se ativo).
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -2147,9 +2132,6 @@ components:
           type: string
           readOnly: true
           description: Identificador único do veículo
-        veiculo_identificador:
-          type: string
-          readOnly: true
         veiculo_placa:
           type: string
           readOnly: true
@@ -2205,7 +2187,6 @@ components:
       - proprietario_nome
       - qr_url
       - qr_url_completa
-      - veiculo_identificador
       - veiculo_marca
       - veiculo_modelo
       - veiculo_placa
@@ -2731,9 +2712,6 @@ components:
           type: string
           readOnly: true
           description: Identificador único do veículo
-        veiculo_identificador:
-          type: string
-          readOnly: true
         veiculo_placa:
           type: string
           readOnly: true

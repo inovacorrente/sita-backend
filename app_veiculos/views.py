@@ -14,8 +14,9 @@ from django.http import Http404, HttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import (OpenApiParameter, OpenApiResponse,
                                    extend_schema, extend_schema_view)
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.decorators import action
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -488,6 +489,7 @@ class TransporteMunicipalVeiculoViewSet(BaseVeiculoViewSet):
 class BannerIdentificacaoViewSet(ModelViewSet):
     """
     ViewSet para gerenciamento de banners de identificação.
+    Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
     """
     queryset = BannerIdentificacao.objects.select_related(
         'content_type'
@@ -500,6 +502,7 @@ class BannerIdentificacaoViewSet(ModelViewSet):
     ]
     ordering = ['-data_criacao']
     lookup_field = 'identificador_unico_veiculo'
+    http_method_names = ['patch', 'get', 'post', 'options', 'head']
 
     def get_object(self):
         """
@@ -878,6 +881,100 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             error_response = VeiculoValidationErrorResponse.erro_interno()
             return Response(
                 error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class BannerAtivarDesativarView(GenericAPIView):
+    """
+    View para ativar/desativar banners de identificação.
+    - Admins podem ativar/desativar qualquer banner
+    - Alterna automaticamente o status ativo (toggle)
+    """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    serializer_class = BannerIdentificacaoSerializer
+
+    def patch(self, request, identificador_unico_veiculo, *args, **kwargs):
+        """
+        Alterna o status ativo do banner
+        (ativa se inativo, desativa se ativo).
+        """
+        # Validar se identificador foi fornecido
+        if not identificador_unico_veiculo:
+            error_response = VeiculoValidationErrorResponse.campo_obrigatorio(
+                {'identificador_unico_veiculo': ['Este campo é obrigatório.']}
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Buscar o banner pelo identificador único do veículo
+            banner = BannerIdentificacao.objects.get(
+                identificador_unico_veiculo=identificador_unico_veiculo
+            )
+
+            # Verificar permissões
+            if not request.user.is_staff:
+                # Usuários comuns só podem alterar banners de seus veículos
+                if banner.veiculo.usuario != request.user:
+                    error_response = (
+                        VeiculoValidationErrorResponse.acesso_negado(
+                            "Você só pode alterar banners de seus "
+                            "próprios veículos."
+                        )
+                    )
+                    return Response(
+                        error_response,
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+            # Alternar status
+            banner.ativo = not banner.ativo
+            banner.save(update_fields=['ativo', 'data_atualizacao'])
+
+            # Log da operação
+            action = 'ativado' if banner.ativo else 'desativado'
+            logger.info(
+                f"Banner do veículo {identificador_unico_veiculo} foi "
+                f"{action} por {request.user.username}"
+            )
+
+            # Resposta de sucesso
+            status_msg = f'Banner {action} com sucesso.'
+            success_response = VeiculoSuccessResponse.veiculo_updated(
+                {
+                    'identificador_unico_veiculo': identificador_unico_veiculo,
+                    'banner_id': banner.id,
+                    'ativo': banner.ativo,
+                    'data_atualizacao': banner.data_atualizacao
+                },
+                status_msg
+            )
+            return Response(success_response, status=status.HTTP_200_OK)
+
+        except BannerIdentificacao.DoesNotExist:
+            error_response = (
+                VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                    f"Banner não encontrado para o veículo "
+                    f"{identificador_unico_veiculo}"
+                )
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(
+                f"Erro ao alterar status do banner "
+                f"{identificador_unico_veiculo}: {str(e)}"
+            )
+            error_response = VeiculoValidationErrorResponse.erro_interno(
+                {"detail": str(e)}
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
