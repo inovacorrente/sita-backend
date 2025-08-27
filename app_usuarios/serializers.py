@@ -2,15 +2,12 @@ from django.contrib.auth.models import Group
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from utils.app_usuarios.validators import (set_default_password_as_matricula,
-                                           validar_cpf, validar_email,
+from utils.app_usuarios.validators import (validar_cpf, validar_email,
                                            validar_telefone,
                                            validate_admin_privileges,
                                            validate_cpf,
                                            validate_data_nascimento_range,
                                            validate_email_unique,
-                                           validate_password_confirmation,
-                                           validate_password_strength,
                                            validate_telefone_format)
 
 from .models import UsuarioCustom
@@ -22,7 +19,8 @@ from .models import UsuarioCustom
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Serializador customizado para autenticação via JWT utilizando `matricula` no lugar de `username`.
+    Serializador customizado para autenticação via JWT utilizando
+    `matricula` no lugar de `username`.
 
     Este serializer:
     - Permite login usando o campo `matricula`.
@@ -92,20 +90,10 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
 
     Realiza:
     - Validações de CPF, e-mail, telefone e data de nascimento.
-    - Validação de força de senha e confirmação.
+    - Gera automaticamente a matrícula do usuário.
+    - Define automaticamente a matrícula como senha padrão.
     - Controle de permissões administrativas na criação.
     """
-    password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        required=False,
-        help_text="Senha (opcional). Se não fornecida, será definida como a matrícula."
-    )
-    password_confirm = serializers.CharField(
-        write_only=True,
-        required=False,
-        help_text="Confirmação da senha (opcional)."
-    )
     cpf = serializers.CharField(
         required=True,
         help_text="CPF válido (apenas números)."
@@ -144,13 +132,16 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuarioCustom
         fields = [
-            'matricula', 'nome_completo', 'email', 'cpf', 'telefone', 'password',
-            'password_confirm', 'data_nascimento', 'sexo', 'groups',
+            'matricula', 'nome_completo', 'email', 'cpf', 'telefone',
+            'data_nascimento', 'sexo', 'groups',
             'is_staff', 'is_superuser',
         ]
+        # Matrícula será gerada automaticamente
+        read_only_fields = ['matricula']
         extra_kwargs = {
             'nome_completo': {'help_text': 'Nome completo do usuário.'},
-            'email': {'help_text': 'E-mail válido e único no sistema.'}
+            'email': {'help_text': 'E-mail válido e único no sistema.'},
+            'matricula': {'help_text': 'Matrícula gerada automaticamente pelo sistema.'}
         }
 
     # ----------------------------
@@ -181,19 +172,11 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
         """Valida se a data de nascimento está dentro do intervalo permitido."""
         return validate_data_nascimento_range(value)
 
-    def validate_password(self, value):
-        """Valida se a senha atende aos critérios de segurança."""
-        return validate_password_strength(value)
-
     def validate(self, attrs):
-        """Validações cruzadas e definição de senha padrão."""
-        password = attrs.get('password')
-        password_confirm = attrs.pop('password_confirm', None)
+        """Validações cruzadas. A matrícula será gerada automaticamente."""
+        # Para novos usuários, a matrícula será gerada automaticamente
+        # no momento da criação através do CustomUserManager
 
-        if not self.instance:
-            attrs = set_default_password_as_matricula(attrs)
-
-        validate_password_confirmation(password, password_confirm)
         request = self.context.get('request')
         attrs = validate_admin_privileges(attrs, request)
         return attrs
@@ -204,17 +187,22 @@ class UsuarioCustomCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Cria um novo usuário com os dados validados."""
         groups = validated_data.pop('groups', [])
-        password = validated_data.pop('password', None)
         is_staff = validated_data.pop('is_staff', False)
         is_superuser = validated_data.pop('is_superuser', False)
 
         try:
+            # O CustomUserManager irá gerar automaticamente a matrícula
             user = UsuarioCustom.objects.create_user(
                 **validated_data,
-                password=password,
+                password=None,  # Será definida após a criação
                 is_staff=is_staff,
                 is_superuser=is_superuser
             )
+
+            # Define a matrícula como senha após a criação
+            user.set_password(str(user.matricula))
+            user.save()
+
             if groups:
                 user.groups.set(groups)
             return user
