@@ -5,9 +5,9 @@ Define as rotas para todos os tipos de veículos.
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (BannerIdentificacaoViewSet, MotoTaxiVeiculoViewSet,
-                    TaxiVeiculoViewSet, TransporteMunicipalVeiculoViewSet,
-                    info_veiculo_publico)
+from .views import (BannerAtivarDesativarView, BannerIdentificacaoViewSet,
+                    MotoTaxiVeiculoViewSet, TaxiVeiculoViewSet,
+                    TransporteMunicipalVeiculoViewSet, info_veiculo_publico)
 
 # Cria o roteador e registra os ViewSets
 router = DefaultRouter()
@@ -35,5 +35,12 @@ urlpatterns = [
         'veiculo/<str:identificador_veiculo>/info/',
         info_veiculo_publico,
         name='info_veiculo_publico'
+    ),
+
+    # URL para ativar/desativar banner
+    path(
+        'banners/<str:identificador_unico_veiculo>/toggle-status/',
+        BannerAtivarDesativarView.as_view(),
+        name='banner-toggle-status'
     ),
 ]

@@ -1,0 +1,3744 @@
+openapi: 3.0.3
+info:
+  title: API de Gestão de Condutores e Usuários
+  version: 1.0.0
+  description: Documentação oficial da API com Django Rest Framework e drf-spectacular.
+paths:
+  /api/condutores/condutores/:
+    get:
+      operationId: condutores_condutores_list
+      description: Retorna uma lista paginada de condutores com filtros opcionais
+        por categoria de CNH, busca e ordenação.
+      summary: Listar condutores
+      parameters:
+      - in: query
+        name: categoria_cnh
+        schema:
+          type: string
+        description: 'Filtrar por categoria da CNH (ex: B, AB, C)'
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Ordenar por campos (ex: data_criacao, -data_criacao)'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Busca por nome completo ou matrícula
+      tags:
+      - condutores
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCondutorListList'
+              examples:
+                ExemploDeResposta:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - count: 1
+                      results:
+                      - usuario:
+                          matricula: '12345'
+                          nome_completo: João da Silva
+                        categoria_cnh: B
+                        data_validade_cnh: '2025-05-01'
+                  summary: Exemplo de resposta
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedCondutorListList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCondutorListList'
+          description: ''
+    post:
+      operationId: condutores_condutores_create
+      description: Cria um novo registro de condutor vinculado a um usuário existente.
+      summary: Criar condutor
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - condutores
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CondutorCreate'
+            examples:
+              ExemploDeRequisição:
+                value:
+                  usuario: 1
+                  categoria_cnh: B
+                  data_validade_cnh: '2025-05-01'
+                  data_emissao_cnh: '2020-05-01'
+                summary: Exemplo de requisição
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CondutorCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CondutorCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+              examples:
+                ExemploDeRequisição:
+                  value:
+                    usuario: 1
+                    categoria_cnh: B
+                    data_validade_cnh: '2025-05-01'
+                    data_emissao_cnh: '2020-05-01'
+                  summary: Exemplo de requisição
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+          description: ''
+  /api/condutores/condutores/{matricula}/:
+    get:
+      operationId: condutores_condutores_retrieve
+      description: Recupera dados detalhados de um condutor usando matrícula, nome
+        ou CPF.
+      summary: Recuperar condutor
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        required: true
+      - in: query
+        name: matricula
+        schema:
+          type: string
+        description: Matrícula, nome ou CPF do condutor
+        required: true
+      tags:
+      - condutores
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+          description: ''
+    put:
+      operationId: condutores_condutores_update
+      description: Atualiza todos os campos do condutor especificado.
+      summary: Atualizar condutor
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        required: true
+      tags:
+      - condutores
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CondutorUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CondutorUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CondutorUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+          description: ''
+    patch:
+      operationId: condutores_condutores_partial_update
+      description: Atualiza parcialmente os dados do condutor especificado.
+      summary: Atualizar parcialmente condutor
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        required: true
+      tags:
+      - condutores
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCondutorUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCondutorUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCondutorUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/CondutorDetail'
+          description: ''
+  /api/usuarios/{matricula}/:
+    get:
+      operationId: usuarios_retrieve
+      description: Retorna os detalhes de um usuário específico pela matrícula. Usuário
+        comum só pode acessar seus próprios dados.
+      summary: Detalhar usuário
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+        required: true
+      tags:
+      - Usuários
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+          description: ''
+        '403':
+          description: Sem permissão
+        '404':
+          description: Usuário não encontrado
+  /api/usuarios/{matricula}/editar/:
+    put:
+      operationId: usuarios_editar_update
+      description: Atualiza os dados de um usuário pela matrícula.
+      summary: Atualizar usuário
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+        required: true
+      tags:
+      - Usuários
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+          description: ''
+    patch:
+      operationId: usuarios_editar_partial_update
+      description: Atualiza parcialmente os dados de um usuário pela matrícula.
+      summary: Atualização parcial de usuário
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+        required: true
+      tags:
+      - Usuários
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioCustomCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioCustomCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioCustomCreate'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+          description: ''
+  /api/usuarios/ativar-desativar/{matricula}/:
+    patch:
+      operationId: usuarios_ativar_desativar_partial_update
+      description: Alterna o status de ativo (`is_active`) de um usuário. Admins podem
+        alterar qualquer usuário, usuários comuns apenas a si mesmos.
+      summary: Ativar/Desativar usuário
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: matricula
+        schema:
+          type: string
+        description: Matrícula do usuário
+        required: true
+      tags:
+      - Usuários
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Status alterado com sucesso
+        '403':
+          description: Sem permissão
+        '404':
+          description: Usuário não encontrado
+  /api/usuarios/listar/:
+    get:
+      operationId: usuarios_listar_list
+      description: Lista todos os usuários cadastrados. Requer autenticação e permissão.
+      summary: Listar usuários
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+        description: Filtrar por status ativo
+      - in: query
+        name: is_staff
+        schema:
+          type: boolean
+        description: Filtrar por admin staff
+      - in: query
+        name: is_superuser
+        schema:
+          type: boolean
+        description: Filtrar por superusuário
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Busca por matrícula, nome, email ou CPF
+      tags:
+      - Usuários
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsuarioCustomViewList'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsuarioCustomViewList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsuarioCustomViewList'
+          description: ''
+  /api/usuarios/login/:
+    post:
+      operationId: usuarios_login_create
+      description: Autentica o usuário usando matrícula e senha. Retorna tokens de
+        acesso e refresh em caso de sucesso.
+      summary: Autenticar usuário via JWT
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - Autenticação
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+            examples:
+              ExemploDeRequisição:
+                value:
+                  matricula: '20230001'
+                  password: senha123
+                summary: Exemplo de requisição
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+        required: true
+      responses:
+        '200':
+          description: Autenticação bem-sucedida
+        '401':
+          description: Credenciais inválidas
+  /api/usuarios/logout/:
+    post:
+      operationId: usuarios_logout_create
+      description: Invalida o refresh token para fazer logout.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - usuarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Logout'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logout'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/Logout'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/Logout'
+          description: ''
+  /api/usuarios/me/:
+    get:
+      operationId: usuarios_me_retrieve
+      description: Retorna os dados do usuário autenticado.
+      summary: Obter meus dados
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - Usuários
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+          description: ''
+    put:
+      operationId: usuarios_me_update
+      description: Atualiza os dados do usuário autenticado.
+      summary: Atualizar meus dados
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - Usuários
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioMe'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UsuarioMe'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsuarioMe'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+          description: ''
+        '400':
+          description: Erro de validação
+    patch:
+      operationId: usuarios_me_partial_update
+      description: Atualiza parcialmente os dados do usuário autenticado.
+      summary: Atualização parcial dos meus dados
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - Usuários
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioMe'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioMe'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioMe'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioMe'
+          description: ''
+  /api/usuarios/refresh/:
+    post:
+      operationId: usuarios_refresh_create
+      description: Sobrescreve o método post para retornar resposta padronizada
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - usuarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/usuarios/register/:
+    post:
+      operationId: usuarios_register_create
+      description: Cria um novo usuário. Apenas administradores podem criar outros
+        administradores.
+      summary: Criar novo usuário
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - Usuários
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsuarioCustomCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCustomView'
+          description: ''
+        '400':
+          description: Erro de validação
+  /api/veiculos/banners/:
+    get:
+      operationId: veiculos_banners_list
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBannerIdentificacaoList'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedBannerIdentificacaoList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBannerIdentificacaoList'
+          description: ''
+    post:
+      operationId: veiculos_banners_create
+      description: Cria um novo banner de identificação para um veículo
+      summary: Criar banner de identificação
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BannerCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BannerCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+        '400':
+          description: Dados inválidos fornecidos
+        '403':
+          description: Sem permissão
+        '404':
+          description: Veículo não encontrado
+  /api/veiculos/banners/{identificador_unico_veiculo}/:
+    get:
+      operationId: veiculos_banners_retrieve
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+        description: Identificador único do veículo
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+    patch:
+      operationId: veiculos_banners_partial_update
+      description: |-
+        ViewSet para gerenciamento de banners de identificação.
+        Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          description: Identificador único do veículo
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/{identificador_unico_veiculo}/download/:
+    get:
+      operationId: veiculos_banners_download_retrieve
+      description: Faz download do arquivo do banner.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          description: Identificador único do veículo
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/{identificador_unico_veiculo}/regenerar/:
+    post:
+      operationId: veiculos_banners_regenerar_create
+      description: |-
+        Regenera o banner de identificação.
+        Remove o arquivo anterior antes de gerar um novo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          description: Identificador único do veículo
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerIdentificacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BannerIdentificacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BannerIdentificacao'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/{identificador_unico_veiculo}/toggle-status/:
+    patch:
+      operationId: veiculos_banners_toggle_status_partial_update
+      description: |-
+        Alterna o status ativo do banner
+        (ativa se inativo, desativa se ativo).
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBannerIdentificacao'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/{identificador_unico_veiculo}/url_completa/:
+    get:
+      operationId: veiculos_banners_url_completa_retrieve
+      description: Retorna URLs completas para o banner e informações do veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          description: Identificador único do veículo
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/banners/por_veiculo/:
+    get:
+      operationId: veiculos_banners_por_veiculo_retrieve
+      description: Busca banner por identificador único do veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+  /api/veiculos/mototaxis/:
+    get:
+      operationId: veiculos_mototaxis_list
+      description: Lista veículos com filtros opcionais.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMotoTaxiVeiculoViewList'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedMotoTaxiVeiculoViewList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMotoTaxiVeiculoViewList'
+          description: ''
+    post:
+      operationId: veiculos_mototaxis_create
+      description: Cria um novo veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoCreate'
+          description: ''
+  /api/veiculos/mototaxis/{identificador_unico_veiculo}/:
+    get:
+      operationId: veiculos_mototaxis_retrieve
+      description: Recupera um veículo específico.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculoView'
+          description: ''
+    put:
+      operationId: veiculos_mototaxis_update
+      description: Atualiza um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MotoTaxiVeiculo'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+          description: ''
+    patch:
+      operationId: veiculos_mototaxis_partial_update
+      description: |-
+        ViewSet para veículos de mototáxi.
+        Fornece operações CRUD completas com permissões do Django.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMotoTaxiVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMotoTaxiVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMotoTaxiVeiculo'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+          description: ''
+    delete:
+      operationId: veiculos_mototaxis_destroy
+      description: Remove um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/veiculos/mototaxis/meus_veiculos/:
+    get:
+      operationId: veiculos_mototaxis_meus_veiculos_retrieve
+      description: Retorna apenas os veículos do usuário logado.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+          description: ''
+  /api/veiculos/mototaxis/resumo/:
+    get:
+      operationId: veiculos_mototaxis_resumo_retrieve
+      description: Retorna lista resumida de veículos para performance.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/MotoTaxiVeiculo'
+          description: ''
+  /api/veiculos/taxis/:
+    get:
+      operationId: veiculos_taxis_list
+      description: Lista veículos com filtros opcionais.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaxiVeiculoViewList'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaxiVeiculoViewList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaxiVeiculoViewList'
+          description: ''
+    post:
+      operationId: veiculos_taxis_create
+      description: Cria um novo veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculoCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculoCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculoCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoCreate'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoCreate'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoCreate'
+          description: ''
+  /api/veiculos/taxis/{identificador_unico_veiculo}/:
+    get:
+      operationId: veiculos_taxis_retrieve
+      description: Recupera um veículo específico.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculoView'
+          description: ''
+    put:
+      operationId: veiculos_taxis_update
+      description: Atualiza um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaxiVeiculo'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+          description: ''
+    patch:
+      operationId: veiculos_taxis_partial_update
+      description: |-
+        ViewSet para veículos de táxi.
+        Fornece operações CRUD completas com permissões do Django.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaxiVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaxiVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaxiVeiculo'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+          description: ''
+    delete:
+      operationId: veiculos_taxis_destroy
+      description: Remove um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/veiculos/taxis/meus_veiculos/:
+    get:
+      operationId: veiculos_taxis_meus_veiculos_retrieve
+      description: Retorna apenas os veículos do usuário logado.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+          description: ''
+  /api/veiculos/taxis/resumo/:
+    get:
+      operationId: veiculos_taxis_resumo_retrieve
+      description: Retorna lista resumida de veículos para performance.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TaxiVeiculo'
+          description: ''
+  /api/veiculos/transporte-municipal/:
+    get:
+      operationId: veiculos_transporte_municipal_list
+      description: Lista veículos com filtros opcionais.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransporteMunicipalVeiculoViewList'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransporteMunicipalVeiculoViewList'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransporteMunicipalVeiculoViewList'
+          description: ''
+    post:
+      operationId: veiculos_transporte_municipal_create
+      description: Cria um novo veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoCreate'
+          description: ''
+  /api/veiculos/transporte-municipal/{identificador_unico_veiculo}/:
+    get:
+      operationId: veiculos_transporte_municipal_retrieve
+      description: Recupera um veículo específico.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoView'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoView'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculoView'
+          description: ''
+    put:
+      operationId: veiculos_transporte_municipal_update
+      description: Atualiza um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          description: ''
+    patch:
+      operationId: veiculos_transporte_municipal_partial_update
+      description: |-
+        ViewSet para veículos de transporte municipal.
+        Fornece operações CRUD completas com permissões do Django.
+        Inclui filtros específicos para linha e capacidade.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTransporteMunicipalVeiculo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTransporteMunicipalVeiculo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTransporteMunicipalVeiculo'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          description: ''
+    delete:
+      operationId: veiculos_transporte_municipal_destroy
+      description: Remove um veículo.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_unico_veiculo
+        schema:
+          type: string
+          title: Identificador Único do Veículo
+          description: Código único para identificação do veículo (alfanumérico de
+            8 caracteres)
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/veiculos/transporte-municipal/meus_veiculos/:
+    get:
+      operationId: veiculos_transporte_municipal_meus_veiculos_retrieve
+      description: Retorna apenas os veículos do usuário logado.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          description: ''
+  /api/veiculos/transporte-municipal/por_linha/:
+    get:
+      operationId: veiculos_transporte_municipal_por_linha_retrieve
+      description: Lista veículos agrupados por linha.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          description: ''
+  /api/veiculos/transporte-municipal/resumo/:
+    get:
+      operationId: veiculos_transporte_municipal_resumo_retrieve
+      description: Retorna lista resumida de veículos para performance.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/TransporteMunicipalVeiculo'
+          description: ''
+  /api/veiculos/veiculo/{identificador_veiculo}/info/:
+    get:
+      operationId: veiculos_veiculo_info_retrieve
+      description: Retorna informações básicas do veículo pelo identificador único.
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: path
+        name: identificador_veiculo
+        schema:
+          type: string
+        required: true
+      tags:
+      - veiculos
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+            application/vnd.oai.openapi+json:
+              schema:
+                $ref: '#/components/schemas/BannerIdentificacao'
+          description: ''
+components:
+  schemas:
+    BannerCreate:
+      type: object
+      description: Serializer para criação de banner de identificação.
+      properties:
+        identificador_veiculo:
+          type: string
+          maxLength: 8
+      required:
+      - identificador_veiculo
+    BannerIdentificacao:
+      type: object
+      description: Serializer para banner de identificação de veículos.
+      properties:
+        identificador_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo
+        veiculo_placa:
+          type: string
+          readOnly: true
+        veiculo_marca:
+          type: string
+          readOnly: true
+        veiculo_modelo:
+          type: string
+          readOnly: true
+        veiculo_tipo:
+          type: string
+          readOnly: true
+        proprietario_nome:
+          type: string
+          readOnly: true
+        arquivo_banner:
+          type: string
+          format: uri
+          readOnly: true
+          description: Arquivo do banner com QR Code
+        banner_url_completa:
+          type: string
+          format: uri
+          readOnly: true
+        qr_url:
+          type: string
+          format: uri
+          readOnly: true
+          description: URL codificada no QR Code
+        qr_url_completa:
+          type: string
+          format: uri
+          readOnly: true
+        data_criacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data de criação do banner
+        data_atualizacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data da última atualização
+        ativo:
+          type: boolean
+          description: Indica se o banner está ativo
+      required:
+      - arquivo_banner
+      - banner_url_completa
+      - data_atualizacao
+      - data_criacao
+      - identificador_veiculo
+      - proprietario_nome
+      - qr_url
+      - qr_url_completa
+      - veiculo_marca
+      - veiculo_modelo
+      - veiculo_placa
+      - veiculo_tipo
+    CondutorCreate:
+      type: object
+      description: |-
+        Serializador para **criação** de condutores.
+
+        Este serializer:
+        - Recebe a matrícula de um usuário já existente (OneToOneField).
+        - Valida se o usuário pertence ao grupo **CONDUTOR**.
+        - Cria o registro de condutor associado.
+
+        Campos:
+            - matricula (str, obrigatório): Matrícula do usuário já existente.
+            - categoria_cnh (str, obrigatório): Categoria da CNH (A, B, C, D, E, AD).
+            - data_validade_cnh (date, obrigatório): Data de validade da CNH.
+            - data_emissao_cnh (date, obrigatório): Data de emissão da CNH.
+      properties:
+        matricula:
+          type: string
+          writeOnly: true
+          maxLength: 50
+        categoria_cnh:
+          type: string
+          description: 'Categoria da CNH: A, B, C, D, E, AD'
+          maxLength: 4
+        data_validade_cnh:
+          type: string
+          format: date
+          description: Data de validade da CNH (formato AAAA-MM-DD).
+        data_emissao_cnh:
+          type: string
+          format: date
+          description: Data de emissão da CNH (formato AAAA-MM-DD).
+      required:
+      - categoria_cnh
+      - data_emissao_cnh
+      - data_validade_cnh
+      - matricula
+    CondutorDetail:
+      type: object
+      description: |-
+        Serializador para visualização detalhada de um condutor.
+
+        Além das informações do condutor e do usuário, adiciona:
+            - cnh_vencida (bool): Se a CNH já está vencida.
+            - dias_para_vencimento (int): Dias restantes para vencer.
+      properties:
+        usuario:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+        categoria_cnh:
+          type: string
+          description: 'Categoria da CNH do condutor. Exemplos: A, B, C, D, E, AD.'
+          maxLength: 4
+        data_validade_cnh:
+          type: string
+          format: date
+          description: Data de validade da CNH (formato AAAA-MM-DD).
+        data_emissao_cnh:
+          type: string
+          format: date
+          description: Data de emissão da CNH (formato AAAA-MM-DD).
+        cnh_vencida:
+          type: boolean
+          readOnly: true
+        dias_para_vencimento:
+          type: integer
+          readOnly: true
+        data_criacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data e hora em que o registro do condutor foi criado.
+        data_atualizacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data e hora da última atualização das informações do condutor.
+      required:
+      - categoria_cnh
+      - cnh_vencida
+      - data_atualizacao
+      - data_criacao
+      - data_emissao_cnh
+      - data_validade_cnh
+      - dias_para_vencimento
+      - usuario
+    CondutorList:
+      type: object
+      description: |-
+        Serializador para listagem de condutores.
+
+        Inclui informações básicas do usuário associado (via UsuarioCustomViewSerializer).
+      properties:
+        usuario:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+        categoria_cnh:
+          type: string
+          description: 'Categoria da CNH do condutor. Exemplos: A, B, C, D, E, AD.'
+          maxLength: 4
+        data_validade_cnh:
+          type: string
+          format: date
+          description: Data de validade da CNH (formato AAAA-MM-DD).
+        data_emissao_cnh:
+          type: string
+          format: date
+          description: Data de emissão da CNH (formato AAAA-MM-DD).
+        data_criacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data e hora em que o registro do condutor foi criado.
+      required:
+      - categoria_cnh
+      - data_criacao
+      - data_emissao_cnh
+      - data_validade_cnh
+      - usuario
+    CondutorUpdate:
+      type: object
+      description: |-
+        Serializador para atualização de dados do condutor.
+
+        Permite atualizar apenas:
+            - categoria_cnh
+            - data_validade_cnh
+            - data_emissao_cnh
+      properties:
+        categoria_cnh:
+          type: string
+          maxLength: 4
+        data_validade_cnh:
+          type: string
+          format: date
+        data_emissao_cnh:
+          type: string
+          format: date
+      required:
+      - categoria_cnh
+      - data_emissao_cnh
+      - data_validade_cnh
+    CustomTokenObtainPair:
+      type: object
+      description: |-
+        Serializador customizado para autenticação via JWT utilizando `matricula` no lugar de `username`.
+
+        Este serializer:
+        - Permite login usando o campo `matricula`.
+        - Adiciona claims extras no token (`matricula` e `email`).
+      properties:
+        matricula:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - matricula
+      - password
+    Logout:
+      type: object
+      description: Serializador para logout (invalidação de refresh token).
+      properties:
+        refresh:
+          type: string
+          description: Refresh token a ser invalidado
+      required:
+      - refresh
+    MotoTaxiVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de mototáxi.
+        Herda todas as validações e campos do VeiculoBaseSerializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    MotoTaxiVeiculoCreate:
+      type: object
+      description: |-
+        Serializer para criação de veículos de mototáxi.
+        Remove campos de leitura para foco na criação.
+      properties:
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+    MotoTaxiVeiculoView:
+      type: object
+      description: |-
+        Serializer para visualização de veículos de mototáxi.
+        Inclui todos os campos para exibição completa.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    PaginatedBannerIdentificacaoList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BannerIdentificacao'
+    PaginatedCondutorListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CondutorList'
+    PaginatedMotoTaxiVeiculoViewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MotoTaxiVeiculoView'
+    PaginatedTaxiVeiculoViewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxiVeiculoView'
+    PaginatedTransporteMunicipalVeiculoViewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransporteMunicipalVeiculoView'
+    PaginatedUsuarioCustomViewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsuarioCustomView'
+    PatchedBannerIdentificacao:
+      type: object
+      description: Serializer para banner de identificação de veículos.
+      properties:
+        identificador_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo
+        veiculo_placa:
+          type: string
+          readOnly: true
+        veiculo_marca:
+          type: string
+          readOnly: true
+        veiculo_modelo:
+          type: string
+          readOnly: true
+        veiculo_tipo:
+          type: string
+          readOnly: true
+        proprietario_nome:
+          type: string
+          readOnly: true
+        arquivo_banner:
+          type: string
+          format: uri
+          readOnly: true
+          description: Arquivo do banner com QR Code
+        banner_url_completa:
+          type: string
+          format: uri
+          readOnly: true
+        qr_url:
+          type: string
+          format: uri
+          readOnly: true
+          description: URL codificada no QR Code
+        qr_url_completa:
+          type: string
+          format: uri
+          readOnly: true
+        data_criacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data de criação do banner
+        data_atualizacao:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data da última atualização
+        ativo:
+          type: boolean
+          description: Indica se o banner está ativo
+    PatchedCondutorUpdate:
+      type: object
+      description: |-
+        Serializador para atualização de dados do condutor.
+
+        Permite atualizar apenas:
+            - categoria_cnh
+            - data_validade_cnh
+            - data_emissao_cnh
+      properties:
+        categoria_cnh:
+          type: string
+          maxLength: 4
+        data_validade_cnh:
+          type: string
+          format: date
+        data_emissao_cnh:
+          type: string
+          format: date
+    PatchedMotoTaxiVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de mototáxi.
+        Herda todas as validações e campos do VeiculoBaseSerializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+    PatchedTaxiVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de táxi.
+        Herda todas as validações e campos do VeiculoBaseSerializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+    PatchedTransporteMunicipalVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de transporte municipal.
+        Inclui campos específicos como linha e capacidade.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+        linha:
+          type: string
+          title: Linha / Rota
+          description: Linha ou rota do transporte municipal
+          maxLength: 50
+        capacidade:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Capacidade máxima de passageiros
+    PatchedUsuarioCustomCreate:
+      type: object
+      description: |-
+        Serializador para criação e edição de usuários.
+
+        Realiza:
+        - Validações de CPF, e-mail, telefone e data de nascimento.
+        - Validação de força de senha e confirmação.
+        - Controle de permissões administrativas na criação.
+      properties:
+        matricula:
+          type: string
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+          maxLength: 50
+        nome_completo:
+          type: string
+          description: Nome completo do usuário.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: E-mail válido e único no sistema.
+          maxLength: 254
+        cpf:
+          type: string
+          description: CPF válido (apenas números).
+        telefone:
+          type: string
+          description: Telefone com DDD (opcional).
+        password:
+          type: string
+          writeOnly: true
+          description: Senha (opcional). Se não fornecida, será definida como a matrícula.
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+          description: Confirmação da senha (opcional).
+        data_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento no formato YYYY-MM-DD.
+        sexo:
+          allOf:
+          - $ref: '#/components/schemas/SexoEnum'
+          description: |-
+            Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O).
+
+            * `M` - Masculino
+            * `F` - Feminino
+            * `O` - Outro
+        groups:
+          type: array
+          items:
+            type: integer
+          description: Lista de IDs dos grupos aos quais o usuário será adicionado.
+        is_staff:
+          type: boolean
+          default: false
+          description: Permite acesso ao Django Admin.
+        is_superuser:
+          type: boolean
+          default: false
+          description: Concede todas as permissões no sistema.
+    PatchedUsuarioMe:
+      type: object
+      description: |-
+        Serializador para que o próprio usuário visualize e edite suas informações.
+        Não permite alterar matrícula ou CPF.
+      properties:
+        nome_completo:
+          type: string
+          description: Nome completo do usuário.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: E-mail válido.
+          maxLength: 254
+        matricula:
+          type: string
+          readOnly: true
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        cpf:
+          type: string
+          readOnly: true
+          description: CPF do usuário, apenas números (11 dígitos).
+        telefone:
+          type: string
+          nullable: true
+          description: Telefone com DDD.
+          maxLength: 15
+        data_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento do usuário (formato AAAA-MM-DD).
+        sexo:
+          allOf:
+          - $ref: '#/components/schemas/SexoEnum'
+          description: |-
+            Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O).
+
+            * `M` - Masculino
+            * `F` - Feminino
+            * `O` - Outro
+    SexoEnum:
+      enum:
+      - M
+      - F
+      - O
+      type: string
+      description: |-
+        * `M` - Masculino
+        * `F` - Feminino
+        * `O` - Outro
+    TaxiVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de táxi.
+        Herda todas as validações e campos do VeiculoBaseSerializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    TaxiVeiculoCreate:
+      type: object
+      description: |-
+        Serializer para criação de veículos de táxi.
+        Remove campos de leitura para foco na criação.
+      properties:
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+    TaxiVeiculoView:
+      type: object
+      description: |-
+        Serializer para visualização de veículos de táxi.
+        Inclui todos os campos para exibição completa.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TransporteMunicipalVeiculo:
+      type: object
+      description: |-
+        Serializer para veículos de transporte municipal.
+        Inclui campos específicos como linha e capacidade.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+        linha:
+          type: string
+          title: Linha / Rota
+          description: Linha ou rota do transporte municipal
+          maxLength: 50
+        capacidade:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Capacidade máxima de passageiros
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - capacidade
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - linha
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    TransporteMunicipalVeiculoCreate:
+      type: object
+      description: |-
+        Serializer para criação de veículos de transporte municipal.
+        Remove campos de leitura para foco na criação.
+      properties:
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+        linha:
+          type: string
+          title: Linha / Rota
+          description: Linha ou rota do transporte municipal
+          maxLength: 50
+        capacidade:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Capacidade máxima de passageiros
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - capacidade
+      - chassi
+      - cor
+      - linha
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+    TransporteMunicipalVeiculoView:
+      type: object
+      description: |-
+        Serializer para visualização de veículos de transporte municipal.
+        Inclui todos os campos para exibição completa.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        identificador_unico_veiculo:
+          type: string
+          readOnly: true
+          description: Identificador único do veículo gerado automaticamente
+        matricula_usuario:
+          type: string
+          writeOnly: true
+          description: Matrícula do usuário proprietário do veículo
+        usuario_detalhes:
+          allOf:
+          - $ref: '#/components/schemas/UsuarioCustomView'
+          readOnly: true
+          description: Detalhes do usuário proprietário
+        placa:
+          type: string
+          description: 'Placa do veículo (formato brasileiro: AAA-9999 ou AAA9A99)'
+          maxLength: 10
+        renavam:
+          type: string
+          description: RENAVAM do veículo (11 dígitos)
+          maxLength: 20
+        chassi:
+          type: string
+          description: Número do chassi (17 caracteres alfanuméricos)
+          maxLength: 17
+        marca:
+          type: string
+          description: Marca do veículo
+          maxLength: 50
+        modelo:
+          type: string
+          description: Modelo do veículo
+          maxLength: 50
+        cor:
+          type: string
+          description: Cor do veículo
+          maxLength: 30
+        anoFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano de Fabricação
+          description: Ano de fabricação do veículo
+        anoLimiteFabricacao:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Ano Limite de Fabricação
+          description: Ano limite de fabricação do veículo
+        linha:
+          type: string
+          title: Linha / Rota
+          description: Linha ou rota do transporte municipal
+          maxLength: 50
+        capacidade:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Capacidade máxima de passageiros
+      required:
+      - anoFabricacao
+      - anoLimiteFabricacao
+      - capacidade
+      - chassi
+      - cor
+      - id
+      - identificador_unico_veiculo
+      - linha
+      - marca
+      - matricula_usuario
+      - modelo
+      - placa
+      - renavam
+      - usuario_detalhes
+    UsuarioCustomCreate:
+      type: object
+      description: |-
+        Serializador para criação e edição de usuários.
+
+        Realiza:
+        - Validações de CPF, e-mail, telefone e data de nascimento.
+        - Validação de força de senha e confirmação.
+        - Controle de permissões administrativas na criação.
+      properties:
+        matricula:
+          type: string
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+          maxLength: 50
+        nome_completo:
+          type: string
+          description: Nome completo do usuário.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: E-mail válido e único no sistema.
+          maxLength: 254
+        cpf:
+          type: string
+          description: CPF válido (apenas números).
+        telefone:
+          type: string
+          description: Telefone com DDD (opcional).
+        password:
+          type: string
+          writeOnly: true
+          description: Senha (opcional). Se não fornecida, será definida como a matrícula.
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+          description: Confirmação da senha (opcional).
+        data_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento no formato YYYY-MM-DD.
+        sexo:
+          allOf:
+          - $ref: '#/components/schemas/SexoEnum'
+          description: |-
+            Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O).
+
+            * `M` - Masculino
+            * `F` - Feminino
+            * `O` - Outro
+        groups:
+          type: array
+          items:
+            type: integer
+          description: Lista de IDs dos grupos aos quais o usuário será adicionado.
+        is_staff:
+          type: boolean
+          default: false
+          description: Permite acesso ao Django Admin.
+        is_superuser:
+          type: boolean
+          default: false
+          description: Concede todas as permissões no sistema.
+      required:
+      - cpf
+      - data_nascimento
+      - email
+      - nome_completo
+      - sexo
+    UsuarioCustomView:
+      type: object
+      description: |-
+        Serializador de exibição de dados de usuários.
+        Inclui informações gerais, status e grupos atribuídos.
+      properties:
+        nome_completo:
+          type: string
+          description: Nome completo do usuário.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: E-mail válido e único no sistema.
+          maxLength: 254
+        matricula:
+          type: string
+          readOnly: true
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        cpf:
+          type: string
+          description: CPF válido, apenas números.
+          maxLength: 11
+        telefone:
+          type: string
+          nullable: true
+          description: Número de telefone com DDD.
+          maxLength: 15
+        data_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento do usuário (formato AAAA-MM-DD).
+        sexo:
+          allOf:
+          - $ref: '#/components/schemas/SexoEnum'
+          description: |-
+            Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O).
+
+            * `M` - Masculino
+            * `F` - Feminino
+            * `O` - Outro
+        is_active:
+          type: boolean
+          description: Indica se a conta do usuário está ativa.
+        is_staff:
+          type: boolean
+          description: Indica se o usuário pode acessar a área administrativa.
+        is_superuser:
+          type: boolean
+          description: Indica se o usuário possui todas as permissões do sistema.
+        groups:
+          type: array
+          items:
+            type: integer
+          description: Lista de IDs dos grupos aos quais o usuário pertence.
+      required:
+      - cpf
+      - data_nascimento
+      - email
+      - matricula
+      - nome_completo
+    UsuarioMe:
+      type: object
+      description: |-
+        Serializador para que o próprio usuário visualize e edite suas informações.
+        Não permite alterar matrícula ou CPF.
+      properties:
+        nome_completo:
+          type: string
+          description: Nome completo do usuário.
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: E-mail válido.
+          maxLength: 254
+        matricula:
+          type: string
+          readOnly: true
+          description: Identificador único do usuário no sistema. É gerado automaticamente
+            se não for informado.
+        cpf:
+          type: string
+          readOnly: true
+          description: CPF do usuário, apenas números (11 dígitos).
+        telefone:
+          type: string
+          nullable: true
+          description: Telefone com DDD.
+          maxLength: 15
+        data_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento do usuário (formato AAAA-MM-DD).
+        sexo:
+          allOf:
+          - $ref: '#/components/schemas/SexoEnum'
+          description: |-
+            Sexo do usuário: Masculino (M), Feminino (F) ou Outro (O).
+
+            * `M` - Masculino
+            * `F` - Feminino
+            * `O` - Outro
+      required:
+      - cpf
+      - data_nascimento
+      - email
+      - matricula
+      - nome_completo
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: Usuários
+  description: Operações relacionadas a usuários
+- name: condutores
+  description: Operações relacionadas a condutores
+- name: Autenticação
+  description: Operações com tokens
+- name: Schema
+  description: Esquema OpenAPI

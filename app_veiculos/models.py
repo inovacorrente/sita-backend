@@ -295,3 +295,45 @@ class BannerIdentificacao(models.Model):
 
         self.qr_url = qr_url
         self.save()
+
+    def delete(self, *args, **kwargs):
+        """
+        Sobrescreve delete para remover os arquivos de banner e pasta vazia
+        antes de deletar o registro do banco de dados.
+        """
+        import logging
+        import os
+
+        logger = logging.getLogger(__name__)
+
+        # Remover arquivo de banner se existir
+        if self.arquivo_banner:
+            try:
+                arquivo_path = self.arquivo_banner.path
+                if os.path.exists(arquivo_path):
+                    # Obter diretório do arquivo antes de removê-lo
+                    diretorio = os.path.dirname(arquivo_path)
+
+                    # Remover o arquivo
+                    os.remove(arquivo_path)
+                    logger.info(f"Arquivo de banner removido: {arquivo_path}")
+
+                    # Tentar remover o diretório se estiver vazio
+                    try:
+                        if (os.path.exists(diretorio) and
+                                not os.listdir(diretorio)):
+                            os.rmdir(diretorio)
+                            logger.info(
+                                f"Diretório vazio removido: {diretorio}"
+                            )
+                    except OSError as e:
+                        logger.debug(
+                            f"Não foi possível remover diretório "
+                            f"{diretorio}: {e}"
+                        )
+
+            except (ValueError, FileNotFoundError) as e:
+                logger.warning(f"Erro ao remover arquivo de banner: {e}")
+
+        # Chamar o delete padrão para remover do banco
+        super().delete(*args, **kwargs)

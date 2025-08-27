@@ -12,11 +12,12 @@ from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from PIL import Image, ImageDraw, ImageFont
-from rest_framework import status
+from drf_spectacular.utils import (OpenApiParameter, OpenApiResponse,
+                                   extend_schema, extend_schema_view)
+from rest_framework import permissions, status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -464,19 +465,31 @@ class TransporteMunicipalVeiculoViewSet(BaseVeiculoViewSet):
 @extend_schema_view(
     retrieve=extend_schema(
         parameters=[
-            {
-                'name': 'identificador_unico_veiculo',
-                'in': 'path',
-                'description': 'Identificador único do veículo',
-                'required': True,
-                'type': 'string'
-            }
+            OpenApiParameter(
+                name='identificador_unico_veiculo',
+                location=OpenApiParameter.PATH,
+                description='Identificador único do veículo',
+                required=True,
+                type=str
+            )
         ]
+    ),
+    create=extend_schema(
+        request=BannerCreateSerializer,
+        responses={
+            201: BannerIdentificacaoSerializer,
+            400: OpenApiResponse(description='Dados inválidos fornecidos'),
+            403: OpenApiResponse(description='Sem permissão'),
+            404: OpenApiResponse(description='Veículo não encontrado'),
+        },
+        description='Cria um novo banner de identificação para um veículo',
+        summary='Criar banner de identificação'
     )
 )
 class BannerIdentificacaoViewSet(ModelViewSet):
     """
     ViewSet para gerenciamento de banners de identificação.
+    Suporta criação (POST), leitura (GET) e atualização (PATCH) de banners.
     """
     queryset = BannerIdentificacao.objects.select_related(
         'content_type'
@@ -489,6 +502,7 @@ class BannerIdentificacaoViewSet(ModelViewSet):
     ]
     ordering = ['-data_criacao']
     lookup_field = 'identificador_unico_veiculo'
+    http_method_names = ['patch', 'get', 'post', 'options', 'head']
 
     def get_object(self):
         """
@@ -586,8 +600,8 @@ class BannerIdentificacaoViewSet(ModelViewSet):
                 f"Banner criado com sucesso para veículo "
                 f"{veiculo.identificador_unico_veiculo}"
             )
-            response_data = VeiculoSuccessResponse.veiculo_criado(
-                result_serializer.data, "Banner criado com sucesso"
+            response_data = VeiculoSuccessResponse.veiculo_created(
+                result_serializer.data, "banner de identificação"
             )
             return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -601,27 +615,97 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             )
 
     @action(detail=True, methods=['post'])
-    def regenerar(self, request, pk=None):
+    def regenerar(self, request, identificador_unico_veiculo=None):
         """
         Regenera o banner de identificação.
+        Remove o arquivo anterior antes de gerar um novo.
         """
         banner = self.get_object()
 
         try:
+            # Guardar informações do arquivo antigo antes da regeneração
+            arquivo_antigo_path = None
+            arquivo_antigo_name = None
+
+            if banner.arquivo_banner:
+                try:
+                    arquivo_antigo_path = str(banner.arquivo_banner.path)
+                    arquivo_antigo_name = str(banner.arquivo_banner.name)
+                    logger.info(
+                        f"Arquivo atual antes da regeneração: "
+                        f"{arquivo_antigo_name}"
+                    )
+                except (ValueError, OSError):
+                    # Arquivo pode não existir fisicamente
+                    logger.warning("Erro ao acessar arquivo antigo")
+
+            # Regenerar o banner (isso cria um novo arquivo)
             banner.gerar_banner()
+
+            # Recarregar o banner do banco para ter o arquivo atualizado
+            banner.refresh_from_db()
+
+            novo_arquivo_path = None
+            if banner.arquivo_banner:
+                try:
+                    novo_arquivo_path = str(banner.arquivo_banner.path)
+                    logger.info(
+                        f"Novo arquivo após regeneração: "
+                        f"{banner.arquivo_banner.name}"
+                    )
+                except (ValueError, OSError):
+                    pass
+
+            # Remover o arquivo antigo se existir e for diferente do novo
+            if (arquivo_antigo_path and
+                    os.path.exists(arquivo_antigo_path) and
+                    arquivo_antigo_path != novo_arquivo_path):
+
+                try:
+                    os.remove(arquivo_antigo_path)
+                    logger.info(
+                        f"Arquivo antigo removido: {arquivo_antigo_name}"
+                    )
+
+                    # Tentar remover diretório se estiver vazio
+                    diretorio = os.path.dirname(arquivo_antigo_path)
+                    try:
+                        if (os.path.exists(diretorio) and
+                                not os.listdir(diretorio)):
+                            os.rmdir(diretorio)
+                            logger.info(
+                                f"Diretório vazio removido: {diretorio}"
+                            )
+                    except OSError:
+                        pass  # Diretório não vazio ou erro
+
+                except (OSError, ValueError) as e:
+                    logger.warning(
+                        f"Erro ao remover arquivo antigo: {str(e)}"
+                    )
+            elif arquivo_antigo_path:
+                logger.info(
+                    f"Arquivo antigo não removido - "
+                    f"Existe: {os.path.exists(arquivo_antigo_path)}, "
+                    f"Diferente: {arquivo_antigo_path != novo_arquivo_path}"
+                )
+
             serializer = self.get_serializer(banner)
 
             logger.info(
                 f"Banner regenerado para veículo "
                 f"{banner.veiculo.identificador_unico_veiculo}"
             )
-            response_data = VeiculoSuccessResponse.veiculo_atualizado(
-                serializer.data, "Banner regenerado com sucesso"
+            response_data = VeiculoSuccessResponse.veiculo_updated(
+                serializer.data, "banner de identificação"
             )
             return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Erro ao regenerar banner {pk}: {str(e)}")
+            logger.error(
+                f"Erro ao regenerar banner {identificador_unico_veiculo}: "
+                f"{str(e)}"
+            )
             error_response = VeiculoValidationErrorResponse.erro_interno(
                 {"detail": str(e)}
             )
@@ -630,7 +714,7 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             )
 
     @action(detail=True, methods=['get'])
-    def download(self, request, pk=None):
+    def download(self, request, identificador_unico_veiculo=None):
         """
         Faz download do arquivo do banner.
         """
@@ -657,11 +741,14 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             return response
 
         except Exception as e:
-            logger.error(f"Erro no download do banner {pk}: {str(e)}")
+            logger.error(
+                f"Erro no download do banner {identificador_unico_veiculo}: "
+                f"{str(e)}"
+            )
             raise Http404("Erro ao acessar arquivo do banner")
 
     @action(detail=True, methods=['get'])
-    def url_completa(self, request, pk=None):
+    def url_completa(self, request, identificador_unico_veiculo=None):
         """
         Retorna URLs completas para o banner e informações do veículo.
         """
@@ -702,7 +789,10 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Erro ao obter URLs do banner {pk}: {str(e)}")
+            logger.error(
+                f"Erro ao obter URLs do banner {identificador_unico_veiculo}: "
+                f"{str(e)}"
+            )
             error_response = VeiculoValidationErrorResponse.erro_interno(
                 {"detail": str(e)}
             )
@@ -791,6 +881,100 @@ class BannerIdentificacaoViewSet(ModelViewSet):
             error_response = VeiculoValidationErrorResponse.erro_interno()
             return Response(
                 error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class BannerAtivarDesativarView(GenericAPIView):
+    """
+    View para ativar/desativar banners de identificação.
+    - Admins podem ativar/desativar qualquer banner
+    - Alterna automaticamente o status ativo (toggle)
+    """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    serializer_class = BannerIdentificacaoSerializer
+
+    def patch(self, request, identificador_unico_veiculo, *args, **kwargs):
+        """
+        Alterna o status ativo do banner
+        (ativa se inativo, desativa se ativo).
+        """
+        # Validar se identificador foi fornecido
+        if not identificador_unico_veiculo:
+            error_response = VeiculoValidationErrorResponse.campo_obrigatorio(
+                {'identificador_unico_veiculo': ['Este campo é obrigatório.']}
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Buscar o banner pelo identificador único do veículo
+            banner = BannerIdentificacao.objects.get(
+                identificador_unico_veiculo=identificador_unico_veiculo
+            )
+
+            # Verificar permissões
+            if not request.user.is_staff:
+                # Usuários comuns só podem alterar banners de seus veículos
+                if banner.veiculo.usuario != request.user:
+                    error_response = (
+                        VeiculoValidationErrorResponse.acesso_negado(
+                            "Você só pode alterar banners de seus "
+                            "próprios veículos."
+                        )
+                    )
+                    return Response(
+                        error_response,
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+            # Alternar status
+            banner.ativo = not banner.ativo
+            banner.save(update_fields=['ativo', 'data_atualizacao'])
+
+            # Log da operação
+            action = 'ativado' if banner.ativo else 'desativado'
+            logger.info(
+                f"Banner do veículo {identificador_unico_veiculo} foi "
+                f"{action} por {request.user.username}"
+            )
+
+            # Resposta de sucesso
+            status_msg = f'Banner {action} com sucesso.'
+            success_response = VeiculoSuccessResponse.veiculo_updated(
+                {
+                    'identificador_unico_veiculo': identificador_unico_veiculo,
+                    'banner_id': banner.id,
+                    'ativo': banner.ativo,
+                    'data_atualizacao': banner.data_atualizacao
+                },
+                status_msg
+            )
+            return Response(success_response, status=status.HTTP_200_OK)
+
+        except BannerIdentificacao.DoesNotExist:
+            error_response = (
+                VeiculoValidationErrorResponse.veiculo_nao_encontrado(
+                    f"Banner não encontrado para o veículo "
+                    f"{identificador_unico_veiculo}"
+                )
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(
+                f"Erro ao alterar status do banner "
+                f"{identificador_unico_veiculo}: {str(e)}"
+            )
+            error_response = VeiculoValidationErrorResponse.erro_interno(
+                {"detail": str(e)}
+            )
+            return Response(
+                error_response,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
