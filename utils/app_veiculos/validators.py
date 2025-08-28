@@ -339,14 +339,20 @@ def validate_usuario_exists(matricula: str) -> UsuarioCustom:
     if not matricula:
         raise ValidationError("Matrícula do usuário é obrigatória")
 
+    # Normaliza a matrícula
+    matricula_limpa = matricula.strip().upper()
+
     try:
-        usuario = UsuarioCustom.objects.get(matricula=matricula)
+        usuario = UsuarioCustom.objects.get(matricula=matricula_limpa)
     except UsuarioCustom.DoesNotExist:
         raise ValidationError(
-            f"Usuário com matrícula '{matricula}' não encontrado")
+            f"Usuário com matrícula '{matricula_limpa}' não encontrado"
+        )
 
     if not usuario.is_active:
-        raise ValidationError("Usuário está inativo")
+        raise ValidationError(
+            f"Usuário com matrícula '{matricula_limpa}' está inativo"
+        )
 
     return usuario
 

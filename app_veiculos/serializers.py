@@ -3,6 +3,7 @@ Serializers para o app de veículos do sistema SITA.
 Inclui serializers para todos os tipos de veículos (Táxi, Mototáxi,
 Transporte Municipal).
 """
+from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -88,7 +89,11 @@ class VeiculoBaseSerializer(serializers.ModelSerializer):
 
     def validate_matricula_usuario(self, value):
         """Valida se o usuário existe e está ativo."""
-        return validate_usuario_exists(value)
+        try:
+            return validate_usuario_exists(value)
+        except ValidationError as e:
+            # Re-lança como ValidationError do DRF com mensagem específica
+            raise serializers.ValidationError(str(e))
 
     def validate_placa(self, value):
         """Valida formato da placa brasileira."""
@@ -147,16 +152,62 @@ class VeiculoBaseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Cria um novo veículo com o usuário associado."""
-        matricula_usuario = validated_data.pop('matricula_usuario')
-        usuario = UsuarioCustom.objects.get(matricula=matricula_usuario)
-        validated_data['usuario'] = usuario
-        return super().create(validated_data)
+        try:
+            matricula_usuario = validated_data.pop('matricula_usuario')
+
+            # Busca o usuário pela matrícula
+            try:
+                usuario = UsuarioCustom.objects.get(
+                    matricula=matricula_usuario
+                )
+            except UsuarioCustom.DoesNotExist:
+                raise serializers.ValidationError({
+                    'matricula_usuario': (
+                        f"Usuário com matrícula '{matricula_usuario}' "
+                        "não encontrado"
+                    )
+                })
+
+            if not usuario.is_active:
+                raise serializers.ValidationError({
+                    'matricula_usuario': (
+                        f"Usuário com matrícula '{matricula_usuario}' "
+                        "está inativo"
+                    )
+                })
+
+            validated_data['usuario'] = usuario
+            return super().create(validated_data)
+
+        except KeyError:
+            raise serializers.ValidationError({
+                'matricula_usuario': 'Matrícula do usuário é obrigatória'
+            })
 
     def update(self, instance, validated_data):
         """Atualiza um veículo existente."""
         matricula_usuario = validated_data.pop('matricula_usuario', None)
         if matricula_usuario:
-            usuario = UsuarioCustom.objects.get(matricula=matricula_usuario)
+            try:
+                usuario = UsuarioCustom.objects.get(
+                    matricula=matricula_usuario
+                )
+            except UsuarioCustom.DoesNotExist:
+                raise serializers.ValidationError({
+                    'matricula_usuario': (
+                        f"Usuário com matrícula '{matricula_usuario}' "
+                        "não encontrado"
+                    )
+                })
+
+            if not usuario.is_active:
+                raise serializers.ValidationError({
+                    'matricula_usuario': (
+                        f"Usuário com matrícula '{matricula_usuario}' "
+                        "está inativo"
+                    )
+                })
+
             validated_data['usuario'] = usuario
         return super().update(instance, validated_data)
 
