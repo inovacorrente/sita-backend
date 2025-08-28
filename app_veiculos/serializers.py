@@ -30,7 +30,7 @@ class VeiculoBaseSerializer(serializers.ModelSerializer):
     """
     matricula_usuario = serializers.CharField(
         write_only=True,
-        help_text="Matrícula do usuário proprietário do veículo"
+        help_text="Matrícula ou email do usuário proprietário do veículo"
     )
     usuario_detalhes = UsuarioCustomViewSerializer(
         source='usuario',
@@ -88,7 +88,7 @@ class VeiculoBaseSerializer(serializers.ModelSerializer):
         }
 
     def validate_matricula_usuario(self, value):
-        """Valida se o usuário existe e está ativo."""
+        """Valida se o usuário existe e está ativo (por matrícula ou email)."""
         try:
             return validate_usuario_exists(value)
         except ValidationError as e:

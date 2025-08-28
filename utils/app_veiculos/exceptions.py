@@ -161,34 +161,42 @@ class VeiculoValidationErrorResponse(ValidationErrorResponse):
         }
 
     @staticmethod
-    def usuario_nao_encontrado_para_veiculo(matricula):
+    def usuario_nao_encontrado_para_veiculo(identificador):
         """Resposta para usuário não encontrado para veículo."""
+        is_email = '@' in identificador if identificador else False
+        campo_tipo = "email" if is_email else "matrícula"
+        artigo = "este" if is_email else "esta"
+        
         return {
             'success': False,
             'status_code': 404,
             'message': "Usuário proprietário não encontrado.",
             'errors': {
                 'matricula_usuario': (
-                    "Nenhum usuário encontrado com esta matrícula"
+                    f"Nenhum usuário encontrado com {artigo} {campo_tipo}"
                 )
             },
-            'details': f"Matrícula informada: '{matricula}'"
+            'details': f"{campo_tipo.capitalize()} informada: '{identificador}'"
         }
 
     @staticmethod
-    def usuario_inativo_para_veiculo(matricula):
+    def usuario_inativo_para_veiculo(identificador):
         """Resposta para usuário inativo para veículo."""
+        is_email = '@' in identificador if identificador else False
+        campo_tipo = "email" if is_email else "matrícula"
+        artigo = "este" if is_email else "esta"
+        
         return {
             'success': False,
             'status_code': 400,
             'message': "Usuário proprietário está inativo.",
             'errors': {
                 'matricula_usuario': (
-                    "O usuário com esta matrícula está inativo no sistema"
+                    f"O usuário com {artigo} {campo_tipo} está inativo no sistema"
                 )
             },
             'details': (
-                f"Matrícula: '{matricula}'. "
+                f"{campo_tipo.capitalize()}: '{identificador}'. "
                 "Entre em contato com o administrador."
             )
         }
@@ -267,12 +275,12 @@ class VeiculoValidationErrorResponse(ValidationErrorResponse):
             'message': f"{campo_nome} é obrigatório.",
             'errors': {
                 'matricula_usuario': (
-                    "A matrícula do usuário é obrigatória "
+                    "A matrícula ou email do usuário é obrigatório "
                     "para cadastrar um veículo"
                 )
             },
             'details': (
-                "Informe a matrícula de um usuário válido e ativo no sistema."
+                "Informe a matrícula ou email de um usuário válido e ativo no sistema."
             )
         }
 

@@ -323,12 +323,12 @@ def validate_linha_transporte(value: str) -> str:
     return linha_limpa
 
 
-def validate_usuario_exists(matricula: str) -> UsuarioCustom:
+def validate_usuario_exists(identificador_usuario: str) -> UsuarioCustom:
     """
-    Valida se o usuário existe pela matrícula.
+    Valida se o usuário existe pela matrícula ou email.
 
     Args:
-        matricula: Matrícula do usuário
+        identificador_usuario: Matrícula ou email do usuário
 
     Returns:
         Objeto UsuarioCustom
@@ -336,22 +336,32 @@ def validate_usuario_exists(matricula: str) -> UsuarioCustom:
     Raises:
         ValidationError: Se o usuário não existir ou estiver inativo
     """
-    if not matricula:
-        raise ValidationError("Matrícula do usuário é obrigatória")
+    if not identificador_usuario:
+        raise ValidationError("Matrícula ou email do usuário é obrigatório")
 
-    # Normaliza a matrícula
-    matricula_limpa = matricula.strip().upper()
-
+    # Normaliza o identificador
+    identificador_limpo = identificador_usuario.strip()
+    
+    # Detecta se é email ou matrícula baseado na presença do '@'
+    is_email = '@' in identificador_limpo
+    
     try:
-        usuario = UsuarioCustom.objects.get(matricula=matricula_limpa)
+        if is_email:
+            # Busca por email (case insensitive)
+            usuario = UsuarioCustom.objects.get(email__iexact=identificador_limpo)
+        else:
+            # Busca por matrícula (case insensitive)
+            usuario = UsuarioCustom.objects.get(matricula__iexact=identificador_limpo)
     except UsuarioCustom.DoesNotExist:
+        campo_tipo = "email" if is_email else "matrícula"
         raise ValidationError(
-            f"Usuário com matrícula '{matricula_limpa}' não encontrado"
+            f"Usuário com {campo_tipo} '{identificador_limpo}' não encontrado"
         )
 
     if not usuario.is_active:
+        campo_tipo = "email" if is_email else "matrícula"
         raise ValidationError(
-            f"Usuário com matrícula '{matricula_limpa}' está inativo"
+            f"Usuário com {campo_tipo} '{identificador_limpo}' está inativo"
         )
 
     return usuario
