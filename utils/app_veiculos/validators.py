@@ -339,8 +339,8 @@ def validate_usuario_exists(matricula: str) -> UsuarioCustom:
     if not matricula:
         raise ValidationError("Matrícula do usuário é obrigatória")
 
-    # Normaliza a matrícula
-    matricula_limpa = matricula.strip().upper()
+    # Normaliza a matrícula (apenas remove espaços)
+    matricula_limpa = matricula.strip()
 
     try:
         usuario = UsuarioCustom.objects.get(matricula=matricula_limpa)
@@ -391,7 +391,11 @@ def validate_veiculo_unique_fields(
             if instance:
                 query = query.exclude(pk=instance.pk)
             if query.exists():
-                erros['placa'] = "Esta placa já está cadastrada no sistema"
+                veiculo_existente = query.first()
+                erros['placa'] = (
+                    f"Esta placa já está cadastrada no veículo "
+                    f"{veiculo_existente.identificador_unico_veiculo}"
+                )
                 break
 
     # Verifica RENAVAM
@@ -401,7 +405,11 @@ def validate_veiculo_unique_fields(
             if instance:
                 query = query.exclude(pk=instance.pk)
             if query.exists():
-                erros['renavam'] = "Este RENAVAM já está cadastrado no sistema"
+                veiculo_existente = query.first()
+                erros['renavam'] = (
+                    f"Este RENAVAM já está cadastrado no veículo "
+                    f"{veiculo_existente.identificador_unico_veiculo}"
+                )
                 break
 
     # Verifica chassi
@@ -411,9 +419,12 @@ def validate_veiculo_unique_fields(
             if instance:
                 query = query.exclude(pk=instance.pk)
             if query.exists():
-                erros['chassi'] = "Este chassi já está cadastrado no sistema"
+                veiculo_existente = query.first()
+                erros['chassi'] = (
+                    f"Este chassi já está cadastrado no veículo "
+                    f"{veiculo_existente.identificador_unico_veiculo}"
+                )
                 break
 
     if erros:
-        raise serializers.ValidationError(erros)
         raise serializers.ValidationError(erros)

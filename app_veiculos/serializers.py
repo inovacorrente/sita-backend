@@ -90,7 +90,9 @@ class VeiculoBaseSerializer(serializers.ModelSerializer):
     def validate_matricula_usuario(self, value):
         """Valida se o usuário existe e está ativo."""
         try:
-            return validate_usuario_exists(value)
+            validate_usuario_exists(value)
+            # Retorna a matrícula, não o objeto usuário
+            return value
         except ValidationError as e:
             # Re-lança como ValidationError do DRF com mensagem específica
             raise serializers.ValidationError(str(e))
