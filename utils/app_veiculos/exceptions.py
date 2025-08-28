@@ -387,7 +387,7 @@ def handle_veiculo_validation_error(validation_error):
             error_text = str(field_errors)
             if "UsuarioCustom matching query does not exist" in error_text:
                 return VeiculoValidationErrorResponse.usuario_nao_encontrado_para_veiculo(  # noqa: E501
-                    "Usuário não encontrado"0
+                    "Usuário não encontrado"
                 )
             formatted_errors[field] = error_text
 
