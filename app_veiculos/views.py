@@ -14,7 +14,8 @@ from django.http import Http404, HttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import (OpenApiParameter, OpenApiResponse,
                                    extend_schema, extend_schema_view)
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
+
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -158,6 +159,14 @@ class BaseVeiculoViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Cria um novo veículo."""
         try:
+            # Validação adicional da matrícula antes de processar
+            matricula_usuario = request.data.get('matricula_usuario')
+            if not matricula_usuario:
+                error_response = VeiculoValidationErrorResponse.campo_obrigatorio()  # noqa: E501
+                return Response(
+                    error_response, status=status.HTTP_400_BAD_REQUEST
+                )
+
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
@@ -177,11 +186,20 @@ class BaseVeiculoViewSet(ModelViewSet):
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
+        except serializers.ValidationError as e:
+            # Trata erros de validação do serializer
+            logger.warning(f"Erro de validação ao criar veículo: {e}")
+            error_response = handle_veiculo_validation_error(e)
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
             logger.error(
-                f"Erro ao criar veículo {self.tipo_veiculo}: {str(e)}"
+                f"Erro inesperado ao criar veículo "
+                f"{self.tipo_veiculo}: {str(e)}"
             )
-            error_response = handle_veiculo_validation_error(e)
+            error_response = VeiculoValidationErrorResponse.dados_invalidos(
+                f"Erro interno: {str(e)}"
+            )
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):

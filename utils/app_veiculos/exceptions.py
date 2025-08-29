@@ -258,6 +258,37 @@ class VeiculoValidationErrorResponse(ValidationErrorResponse):
             'details': f"Linha informada: '{linha_informada}'"
         }
 
+    @staticmethod
+    def campo_obrigatorio(campo_nome="Campo obrigatório"):
+        """Resposta para campo obrigatório não preenchido."""
+        return {
+            'success': False,
+            'status_code': 400,
+            'message': f"{campo_nome} é obrigatório.",
+            'errors': {
+                'matricula_usuario': (
+                    "A matrícula do usuário é obrigatória "
+                    "para cadastrar um veículo"
+                )
+            },
+            'details': (
+                "Informe a matrícula de um usuário válido e ativo no sistema."
+            )
+        }
+
+    @staticmethod
+    def dados_invalidos(detalhes="Dados inválidos"):
+        """Resposta genérica para dados inválidos."""
+        return {
+            'success': False,
+            'status_code': 400,
+            'message': "Dados do veículo inválidos.",
+            'errors': {
+                'dados': "Um ou mais campos contêm dados inválidos"
+            },
+            'details': detalhes
+        }
+
 
 class VeiculoException(Exception):
     """
@@ -324,6 +355,13 @@ def handle_veiculo_validation_error(validation_error):
     Returns:
         dict: Resposta de erro formatada
     """
+    # Verifica se é um erro específico de usuário não encontrado
+    error_message = str(validation_error)
+    if "UsuarioCustom matching query does not exist" in error_message:
+        return VeiculoValidationErrorResponse.usuario_nao_encontrado_para_veiculo(  # noqa: E501
+            "Matrícula não informada ou inválida"
+        )
+
     if hasattr(validation_error, 'error_dict'):
         # Erro de validação do Django
         errors = validation_error.error_dict
@@ -338,9 +376,20 @@ def handle_veiculo_validation_error(validation_error):
     formatted_errors = {}
     for field, field_errors in errors.items():
         if isinstance(field_errors, list):
-            formatted_errors[field] = field_errors[0]
+            # Trata erros específicos conhecidos
+            error_text = str(field_errors[0])
+            if "UsuarioCustom matching query does not exist" in error_text:
+                return VeiculoValidationErrorResponse.usuario_nao_encontrado_para_veiculo(  # noqa: E501
+                    "Usuário não encontrado"
+                )
+            formatted_errors[field] = error_text
         else:
-            formatted_errors[field] = str(field_errors)
+            error_text = str(field_errors)
+            if "UsuarioCustom matching query does not exist" in error_text:
+                return VeiculoValidationErrorResponse.usuario_nao_encontrado_para_veiculo(  # noqa: E501
+                    "Usuário não encontrado"
+                )
+            formatted_errors[field] = error_text
 
     return {
         'success': False,
